@@ -1,0 +1,1017 @@
+object FrmServerMain: TFrmServerMain
+  Left = 260
+  Height = 680
+  Top = 140
+  Width = 980
+  Caption = 'Digital Signage CMS - Painel do Servidor & Gerenciador de Mídias'
+  ClientHeight = 680
+  ClientWidth = 980
+  Color = clBtnFace
+  Font.CharSet = ANSI_CHARSET
+  Font.Height = -12
+  Font.Name = 'Sans'
+  Font.Pitch = fpVariable
+  Font.Quality = fqDraft
+  Position = poScreenCenter
+  LCLVersion = '4.8.0.0'
+  OnCreate = FormCreate
+  OnDestroy = FormDestroy
+  OnClose = FormClose
+  object PageControlMain: TPageControl
+    Left = 0
+    Height = 680
+    Top = 0
+    Width = 980
+    ActivePage = TabMidias
+    Align = alClient
+    TabIndex = 2
+    TabOrder = 0
+    OnChange = PageControlMainChange
+    object TabServidor: TTabSheet
+      Caption = '  🖥️ Servidor & Monitor  '
+      ClientHeight = 649
+      ClientWidth = 970
+      object PanelTopStatus: TPanel
+        Left = 10
+        Height = 56
+        Top = 10
+        Width = 950
+        Align = alTop
+        BorderSpacing.Around = 10
+        BevelOuter = bvNone
+        ClientHeight = 56
+        ClientWidth = 950
+        Color = 15724527
+        ParentBackground = False
+        ParentColor = False
+        TabOrder = 0
+        object ShapeStatus: TShape
+          Left = 16
+          Height = 24
+          Top = 16
+          Width = 24
+          Brush.Color = clRed
+          Shape = stCircle
+        end
+        object LblServerStatus: TLabel
+          Left = 52
+          Height = 22
+          Top = 18
+          Width = 141
+          Caption = 'SERVIDOR PARADO'
+          Font.CharSet = ANSI_CHARSET
+          Font.Height = -15
+          Font.Name = 'Sans'
+          Font.Pitch = fpVariable
+          Font.Quality = fqDraft
+          Font.Style = [fsBold]
+          ParentColor = False
+          ParentFont = False
+        end
+        object BtnStartServer: TBitBtn
+          Left = 646
+          Height = 36
+          Top = 10
+          Width = 140
+          Anchors = [akTop, akRight]
+          Caption = '▶ Iniciar Servidor'
+          Font.Height = -13
+          Font.Style = [fsBold]
+          ParentFont = False
+          TabOrder = 0
+          OnClick = BtnStartServerClick
+        end
+        object BtnStopServer: TBitBtn
+          Left = 796
+          Height = 36
+          Top = 10
+          Width = 140
+          Anchors = [akTop, akRight]
+          Caption = '⏹ Parar Servidor'
+          Enabled = False
+          Font.Height = -13
+          Font.Style = [fsBold]
+          ParentFont = False
+          TabOrder = 1
+          OnClick = BtnStopServerClick
+        end
+      end
+      object GroupBoxConfig: TGroupBox
+        Left = 10
+        Height = 160
+        Top = 76
+        Width = 950
+        Align = alTop
+        BorderSpacing.Around = 10
+        Caption = ' Parâmetros de Rede & Banco de Dados Firebird 5.0 '
+        ClientHeight = 142
+        ClientWidth = 948
+        ParentBackground = False
+        TabOrder = 1
+        object LblHttpPort: TLabel
+          Left = 16
+          Height = 17
+          Top = 14
+          Width = 66
+          Caption = 'Porta HTTP:'
+          ParentColor = False
+        end
+        object EditHttpPort: TEdit
+          Left = 96
+          Height = 34
+          Top = 10
+          Width = 80
+          TabOrder = 0
+          Text = '8080'
+        end
+        object LblDbHost: TLabel
+          Left = 200
+          Height = 17
+          Top = 14
+          Width = 75
+          Caption = 'Host Firebird:'
+          ParentColor = False
+        end
+        object EditDbHost: TEdit
+          Left = 290
+          Height = 34
+          Top = 10
+          Width = 140
+          TabOrder = 1
+          Text = '127.0.0.1'
+        end
+        object LblDbPath: TLabel
+          Left = 16
+          Height = 17
+          Top = 54
+          Width = 94
+          Caption = 'Banco de Dados:'
+          ParentColor = False
+        end
+        object EditDbPath: TEdit
+          Left = 130
+          Height = 34
+          Top = 50
+          Width = 500
+          TabOrder = 2
+          Text = '/opt/firebird/dados/digitalsign.fdb'
+        end
+        object LblDbUser: TLabel
+          Left = 16
+          Height = 17
+          Top = 94
+          Width = 47
+          Caption = 'Usuário:'
+          ParentColor = False
+        end
+        object EditDbUser: TEdit
+          Left = 75
+          Height = 34
+          Top = 90
+          Width = 110
+          TabOrder = 3
+          Text = 'SYSDBA'
+        end
+        object LblDbPass: TLabel
+          Left = 200
+          Height = 17
+          Top = 94
+          Width = 38
+          Caption = 'Senha:'
+          ParentColor = False
+        end
+        object EditDbPass: TEdit
+          Left = 250
+          Height = 34
+          Top = 90
+          Width = 140
+          EchoMode = emPassword
+          PasswordChar = '*'
+          TabOrder = 4
+          Text = 'masterkey'
+        end
+        object BtnSaveConfig: TBitBtn
+          Left = 648
+          Height = 32
+          Top = 86
+          Width = 140
+          Anchors = [akTop, akRight]
+          Caption = '💾 Salvar Config'
+          TabOrder = 5
+          OnClick = BtnSaveConfigClick
+        end
+        object BtnTestDb: TBitBtn
+          Left = 798
+          Height = 32
+          Top = 86
+          Width = 140
+          Anchors = [akTop, akRight]
+          Caption = '🔌 Testar Conexão'
+          TabOrder = 6
+          OnClick = BtnTestDbClick
+        end
+      end
+      object GroupBoxLogs: TGroupBox
+        Left = 10
+        Height = 393
+        Top = 246
+        Width = 950
+        Align = alClient
+        BorderSpacing.Around = 10
+        Caption = ' Monitor de Requisições & Logs dos Players em Tempo Real '
+        ClientHeight = 375
+        ClientWidth = 948
+        ParentBackground = False
+        TabOrder = 2
+        object MemoLogs: TMemo
+          Left = 8
+          Height = 324
+          Top = 8
+          Width = 932
+          Align = alClient
+          BorderSpacing.Around = 8
+          Color = clBlack
+          Font.Color = clLime
+          Font.Height = -12
+          Font.Name = 'Monospace'
+          Font.Pitch = fpFixed
+          Font.Quality = fqDraft
+          ParentFont = False
+          ReadOnly = True
+          ScrollBars = ssAutoBoth
+          TabOrder = 0
+        end
+        object PanelLogActions: TPanel
+          Left = 0
+          Height = 35
+          Top = 340
+          Width = 948
+          Align = alBottom
+          BevelOuter = bvNone
+          ClientHeight = 35
+          ClientWidth = 948
+          ParentBackground = False
+          TabOrder = 1
+          object BtnClearLogs: TBitBtn
+            Left = 808
+            Height = 28
+            Top = 3
+            Width = 130
+            Anchors = [akTop, akRight]
+            Caption = '🗑 Limpar Logs'
+            TabOrder = 0
+            OnClick = BtnClearLogsClick
+          end
+        end
+      end
+    end
+    object TabTelas: TTabSheet
+      Caption = '  📱 Telas & Players  '
+      ClientHeight = 649
+      ClientWidth = 970
+      object PanelTelasTop: TPanel
+        Left = 0
+        Height = 44
+        Top = 0
+        Width = 970
+        Align = alTop
+        BevelOuter = bvNone
+        ClientHeight = 44
+        ClientWidth = 970
+        ParentBackground = False
+        TabOrder = 0
+        object BtnRefreshTelas: TBitBtn
+          Left = 10
+          Height = 32
+          Top = 6
+          Width = 130
+          Caption = '🔄 Atualizar'
+          TabOrder = 0
+          OnClick = BtnRefreshTelasClick
+        end
+        object BtnDeleteTela: TBitBtn
+          Left = 150
+          Height = 32
+          Top = 6
+          Width = 130
+          Caption = '🗑 Excluir Tela'
+          TabOrder = 1
+          OnClick = BtnDeleteTelaClick
+        end
+        object BtnOpenWebPlayer: TBitBtn
+          Left = 290
+          Height = 32
+          Top = 6
+          Width = 240
+          Caption = '🌐 Abrir Web Player (Navegador)'
+          TabOrder = 2
+          OnClick = BtnOpenWebPlayerClick
+        end
+      end
+      object GridTelas: TStringGrid
+        Left = 10
+        Height = 585
+        Top = 54
+        Width = 950
+        Align = alClient
+        AlternateColor = 16250871
+        AutoFillColumns = True
+        BorderSpacing.Around = 10
+        ColCount = 7
+        Columns = <        
+          item
+            Title.Caption = 'ID'
+            Width = 136
+          end        
+          item
+            Title.Caption = 'Nome da Tela'
+            Width = 135
+          end        
+          item
+            Title.Caption = 'IP Local'
+            Width = 135
+          end        
+          item
+            Title.Caption = 'Status'
+            Width = 135
+          end        
+          item
+            Title.Caption = 'Versão'
+            Width = 135
+          end        
+          item
+            Title.Caption = 'Último Heartbeat'
+            Width = 135
+          end        
+          item
+            Title.Caption = 'UUID'
+            Width = 135
+          end>
+        FixedCols = 0
+        Options = [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine, goRangeSelect, goRowSelect, goSmoothScroll]
+        RowCount = 1
+        TabOrder = 1
+        ColWidths = (
+          136
+          135
+          135
+          135
+          135
+          135
+          135
+        )
+      end
+    end
+    object TabMidias: TTabSheet
+      Caption = '  🎬 Catálogo de Mídias  '
+      ClientHeight = 649
+      ClientWidth = 970
+      object PanelMidiasTop: TPanel
+        Left = 0
+        Height = 44
+        Top = 0
+        Width = 970
+        Align = alTop
+        BevelOuter = bvNone
+        ClientHeight = 44
+        ClientWidth = 970
+        ParentBackground = False
+        TabOrder = 0
+        object BtnAddMedia: TBitBtn
+          Left = 10
+          Height = 32
+          Top = 6
+          Width = 170
+          Caption = '➕ Adicionar Arquivo'
+          TabOrder = 0
+          OnClick = BtnAddMediaClick
+        end
+        object BtnAddYouTube: TBitBtn
+          Left = 190
+          Height = 32
+          Top = 6
+          Width = 210
+          Caption = '▶️ + Vídeo YouTube / Link'
+          TabOrder = 1
+          OnClick = BtnAddYouTubeClick
+        end
+        object BtnDeleteMedia: TBitBtn
+          Left = 410
+          Height = 32
+          Top = 6
+          Width = 120
+          Caption = '🗑 Excluir Mídia'
+          TabOrder = 2
+          OnClick = BtnDeleteMediaClick
+        end
+        object BtnRefreshMidias: TBitBtn
+          Left = 540
+          Height = 32
+          Top = 6
+          Width = 110
+          Caption = '🔄 Atualizar'
+          TabOrder = 3
+          OnClick = BtnRefreshMidiasClick
+        end
+        object BtnOpenMediaFolder: TBitBtn
+          Left = 660
+          Height = 32
+          Top = 6
+          Width = 160
+          Caption = '📁 Abrir Pasta de Mídias'
+          TabOrder = 4
+          OnClick = BtnOpenMediaFolderClick
+        end
+      end
+      object PanelMidiasLeft: TPanel
+        Left = 0
+        Height = 605
+        Top = 44
+        Width = 586
+        Align = alClient
+        BevelOuter = bvNone
+        ClientHeight = 605
+        ClientWidth = 586
+        ParentBackground = False
+        TabOrder = 1
+        object GridMidias: TStringGrid
+          Left = 10
+          Height = 585
+          Top = 10
+          Width = 566
+          Align = alClient
+          AlternateColor = 16250871
+          AutoFillColumns = True
+          BorderSpacing.Around = 10
+          ColCount = 7
+          Columns = <          
+            item
+              Title.Caption = 'ID'
+              Width = 81
+            end          
+            item
+              Title.Caption = 'Nome de Exibição'
+              Width = 81
+            end          
+            item
+              Title.Caption = 'Arquivo'
+              Width = 81
+            end          
+            item
+              Title.Caption = 'Tipo'
+              Width = 81
+            end          
+            item
+              Title.Caption = 'Duração'
+              Width = 80
+            end          
+            item
+              Title.Caption = 'Tam (MB)'
+              Width = 80
+            end          
+            item
+              Title.Caption = 'Hash MD5'
+              Width = 80
+            end>
+          FixedCols = 0
+          Options = [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine, goRangeSelect, goRowSelect, goSmoothScroll]
+          RowCount = 1
+          TabOrder = 0
+          OnSelection = GridMidiasSelection
+          ColWidths = (
+            81
+            81
+            81
+            81
+            80
+            80
+            80
+          )
+        end
+      end
+      object SplitterMidias: TSplitter
+        Left = 586
+        Height = 605
+        Top = 44
+        Width = 5
+        Align = alRight
+        ResizeAnchor = akRight
+      end
+      object PanelMidiasRight: TPanel
+        Left = 591
+        Height = 605
+        Top = 44
+        Width = 379
+        Align = alRight
+        BevelOuter = bvNone
+        ClientHeight = 605
+        ClientWidth = 379
+        ParentBackground = False
+        TabOrder = 2
+        object GroupBoxPreview: TGroupBox
+          Left = 6
+          Height = 593
+          Top = 6
+          Width = 367
+          Align = alClient
+          BorderSpacing.Around = 6
+          Caption = ' 👁️ Pré-visualização & Detalhes da Mídia '
+          ClientHeight = 575
+          ClientWidth = 365
+          ParentBackground = False
+          TabOrder = 0
+          object PanelPreviewImage: TPanel
+            Left = 8
+            Height = 341
+            Top = 8
+            Width = 349
+            Align = alClient
+            BorderSpacing.Around = 8
+            BevelOuter = bvLowered
+            ClientHeight = 341
+            ClientWidth = 349
+            Color = clBlack
+            ParentBackground = False
+            ParentColor = False
+            TabOrder = 0
+            object PanelVideoCanvas: TPanel
+              Left = 1
+              Height = 339
+              Top = 1
+              Width = 347
+              Align = alClient
+              BevelOuter = bvNone
+              Color = clBlack
+              ParentBackground = False
+              ParentColor = False
+              TabOrder = 0
+              Visible = False
+            end
+            object ImagePreview: TImage
+              Left = 1
+              Height = 339
+              Top = 1
+              Width = 347
+              Align = alClient
+              Center = True
+              Proportional = True
+              Stretch = True
+            end
+          end
+          object PanelPreviewMeta: TPanel
+            Left = 8
+            Height = 210
+            Top = 357
+            Width = 349
+            Align = alBottom
+            BorderSpacing.Around = 8
+            BevelOuter = bvNone
+            ClientHeight = 210
+            ClientWidth = 349
+            ParentBackground = False
+            TabOrder = 1
+            object LblPreviewTitle: TLabel
+              Left = 6
+              Height = 18
+              Top = 6
+              Width = 337
+              Anchors = [akTop, akLeft, akRight]
+              Caption = 'Nenhuma mídia selecionada'
+              Font.Height = -14
+              Font.Style = [fsBold]
+              ParentColor = False
+              ParentFont = False
+            end
+            object LblPreviewFileName: TLabel
+              Left = 6
+              Height = 17
+              Top = 32
+              Width = 337
+              Anchors = [akTop, akLeft, akRight]
+              Caption = 'Arquivo: -'
+              ParentColor = False
+            end
+            object LblPreviewType: TLabel
+              Left = 6
+              Height = 17
+              Top = 56
+              Width = 337
+              Anchors = [akTop, akLeft, akRight]
+              Caption = 'Tipo: -'
+              ParentColor = False
+            end
+            object LblPreviewResolution: TLabel
+              Left = 6
+              Height = 17
+              Top = 80
+              Width = 337
+              Anchors = [akTop, akLeft, akRight]
+              Caption = 'Tamanho: -'
+              ParentColor = False
+            end
+            object LblPreviewMD5: TLabel
+              Left = 6
+              Height = 14
+              Top = 104
+              Width = 337
+              Anchors = [akTop, akLeft, akRight]
+              Caption = 'MD5: -'
+              Font.Height = -11
+              Font.Name = 'Monospace'
+              ParentColor = False
+              ParentFont = False
+            end
+            object PanelMediaControls: TPanel
+              Left = 6
+              Height = 34
+              Top = 128
+              Width = 337
+              Anchors = [akTop, akLeft, akRight]
+              BevelOuter = bvNone
+              ClientHeight = 34
+              ClientWidth = 337
+              ParentBackground = False
+              TabOrder = 0
+              object BtnPlayMedia: TBitBtn
+                Left = 0
+                Height = 34
+                Top = 0
+                Width = 164
+                Align = alLeft
+                Caption = '▶️ Reproduzir'
+                Enabled = False
+                Font.Style = [fsBold]
+                ParentFont = False
+                TabOrder = 0
+                OnClick = BtnPlayMediaClick
+              end
+              object BtnStopMedia: TBitBtn
+                Left = 173
+                Height = 34
+                Top = 0
+                Width = 164
+                Align = alRight
+                Caption = '⏹️ Parar'
+                Enabled = False
+                Font.Style = [fsBold]
+                ParentFont = False
+                TabOrder = 1
+                OnClick = BtnStopMediaClick
+              end
+            end
+            object BtnOpenExternal: TBitBtn
+              Left = 6
+              Height = 28
+              Top = 168
+              Width = 337
+              Anchors = [akTop, akLeft, akRight]
+              Caption = '🔗 Abrir no Player do Sistema'
+              Enabled = False
+              ParentFont = False
+              TabOrder = 1
+              OnClick = BtnOpenExternalClick
+            end
+          end
+        end
+      end
+    end
+    object TabPlaylists: TTabSheet
+      Caption = '  📑 Playlists  '
+      ClientHeight = 649
+      ClientWidth = 970
+      object PanelPlaylistsLeft: TPanel
+        Left = 0
+        Height = 649
+        Top = 0
+        Width = 430
+        Align = alLeft
+        BevelOuter = bvNone
+        ClientHeight = 649
+        ClientWidth = 430
+        ParentBackground = False
+        TabOrder = 0
+        object PanelPlaylistsLeftTop: TPanel
+          Left = 0
+          Height = 44
+          Top = 0
+          Width = 430
+          Align = alTop
+          BevelOuter = bvNone
+          ClientHeight = 44
+          ClientWidth = 430
+          ParentBackground = False
+          TabOrder = 0
+          object BtnNewPlaylist: TBitBtn
+            Left = 5
+            Height = 32
+            Top = 6
+            Width = 105
+            Caption = '➕ Nova'
+            TabOrder = 0
+            OnClick = BtnNewPlaylistClick
+          end
+          object BtnSetDefaultPlaylist: TBitBtn
+            Left = 115
+            Height = 32
+            Top = 6
+            Width = 115
+            Caption = '⭐ Padrão'
+            TabOrder = 1
+            OnClick = BtnSetDefaultPlaylistClick
+          end
+          object BtnDeletePlaylist: TBitBtn
+            Left = 235
+            Height = 32
+            Top = 6
+            Width = 90
+            Caption = '🗑 Excluir'
+            TabOrder = 2
+            OnClick = BtnDeletePlaylistClick
+          end
+          object BtnRefreshPlaylists: TBitBtn
+            Left = 330
+            Height = 32
+            Top = 6
+            Width = 95
+            Caption = '🔄 Atualizar'
+            TabOrder = 3
+            OnClick = BtnRefreshPlaylistsClick
+          end
+        end
+        object GridPlaylists: TStringGrid
+          Left = 10
+          Height = 585
+          Top = 54
+          Width = 410
+          Align = alClient
+          AlternateColor = 16250871
+          AutoFillColumns = True
+          BorderSpacing.Around = 10
+          ColCount = 4
+          Columns = <          
+            item
+              Title.Caption = 'ID'
+              Width = 102
+            end          
+            item
+              Title.Caption = 'Nome da Playlist'
+              Width = 102
+            end          
+            item
+              Title.Caption = 'Padrão'
+              Width = 101
+            end          
+            item
+              Title.Caption = 'Ativa'
+              Width = 101
+            end>
+          FixedCols = 0
+          Options = [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine, goRangeSelect, goRowSelect, goSmoothScroll]
+          RowCount = 1
+          TabOrder = 1
+          OnSelection = GridPlaylistsSelection
+          ColWidths = (
+            102
+            102
+            101
+            101
+          )
+        end
+      end
+      object SplitterPlaylists: TSplitter
+        Left = 430
+        Height = 649
+        Top = 0
+        Width = 5
+      end
+      object PanelPlaylistsRight: TPanel
+        Left = 435
+        Height = 649
+        Top = 0
+        Width = 535
+        Align = alClient
+        BevelOuter = bvNone
+        ClientHeight = 649
+        ClientWidth = 535
+        ParentBackground = False
+        TabOrder = 2
+        object PanelPlaylistsRightTop: TPanel
+          Left = 0
+          Height = 44
+          Top = 0
+          Width = 535
+          Align = alTop
+          BevelOuter = bvNone
+          ClientHeight = 44
+          ClientWidth = 535
+          ParentBackground = False
+          TabOrder = 0
+          object BtnAddPlaylistItem: TBitBtn
+            Left = 6
+            Height = 32
+            Top = 6
+            Width = 140
+            Caption = '➕ Adicionar Mídia'
+            TabOrder = 0
+            OnClick = BtnAddPlaylistItemClick
+          end
+          object BtnMoveItemUp: TBitBtn
+            Left = 156
+            Height = 32
+            Top = 6
+            Width = 85
+            Caption = '⬆ Subir'
+            TabOrder = 1
+            OnClick = BtnMoveItemUpClick
+          end
+          object BtnMoveItemDown: TBitBtn
+            Left = 250
+            Height = 32
+            Top = 6
+            Width = 85
+            Caption = '⬇ Descer'
+            TabOrder = 2
+            OnClick = BtnMoveItemDownClick
+          end
+          object BtnDeletePlaylistItem: TBitBtn
+            Left = 345
+            Height = 32
+            Top = 6
+            Width = 100
+            Caption = '🗑 Remover'
+            TabOrder = 3
+            OnClick = BtnDeletePlaylistItemClick
+          end
+        end
+        object GridPlaylistItens: TStringGrid
+          Left = 6
+          Height = 593
+          Top = 50
+          Width = 523
+          Align = alClient
+          AlternateColor = 16250871
+          AutoFillColumns = True
+          BorderSpacing.Around = 6
+          ColCount = 6
+          Columns = <          
+            item
+              Title.Caption = 'Ordem'
+              Width = 87
+            end          
+            item
+              Title.Caption = 'Mídia'
+              Width = 87
+            end          
+            item
+              Title.Caption = 'Tipo'
+              Width = 87
+            end          
+            item
+              Title.Caption = 'Duração (s)'
+              Width = 86
+            end          
+            item
+              Title.Caption = 'Transição'
+              Width = 86
+            end          
+            item
+              Title.Caption = 'Item ID'
+              Width = 86
+            end>
+          FixedCols = 0
+          Options = [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine, goRangeSelect, goRowSelect, goSmoothScroll]
+          RowCount = 1
+          TabOrder = 1
+          ColWidths = (
+            87
+            87
+            87
+            86
+            86
+            86
+          )
+        end
+      end
+    end
+    object TabAgendamentos: TTabSheet
+      Caption = '  📅 Agendamentos (Grade Horária)  '
+      ClientHeight = 649
+      ClientWidth = 970
+      object PanelAgendamentosTop: TPanel
+        Left = 0
+        Height = 44
+        Top = 0
+        Width = 970
+        Align = alTop
+        BevelOuter = bvNone
+        ClientHeight = 44
+        ClientWidth = 970
+        ParentBackground = False
+        TabOrder = 0
+        object BtnNewAgendamento: TBitBtn
+          Left = 10
+          Height = 32
+          Top = 6
+          Width = 180
+          Caption = '➕ Novo Agendamento'
+          TabOrder = 0
+          OnClick = BtnNewAgendamentoClick
+        end
+        object BtnDeleteAgendamento: TBitBtn
+          Left = 200
+          Height = 32
+          Top = 6
+          Width = 140
+          Caption = '🗑 Remover'
+          TabOrder = 1
+          OnClick = BtnDeleteAgendamentoClick
+        end
+        object BtnRefreshAgendamentos: TBitBtn
+          Left = 350
+          Height = 32
+          Top = 6
+          Width = 120
+          Caption = '🔄 Atualizar'
+          TabOrder = 2
+          OnClick = BtnRefreshAgendamentosClick
+        end
+      end
+      object GridAgendamentos: TStringGrid
+        Left = 10
+        Height = 585
+        Top = 54
+        Width = 950
+        Align = alClient
+        AlternateColor = 16250871
+        AutoFillColumns = True
+        BorderSpacing.Around = 10
+        ColCount = 9
+        Columns = <        
+          item
+            Title.Caption = 'ID'
+            Width = 106
+          end        
+          item
+            Title.Caption = 'Evento / Campanha'
+            Width = 105
+          end        
+          item
+            Title.Caption = 'Playlist'
+            Width = 105
+          end        
+          item
+            Title.Caption = 'Destino (Tela / IP)'
+            Width = 105
+          end        
+          item
+            Title.Caption = 'Período'
+            Width = 105
+          end        
+          item
+            Title.Caption = 'Horário'
+            Width = 105
+          end        
+          item
+            Title.Caption = 'Dias'
+            Width = 105
+          end        
+          item
+            Title.Caption = 'Prioridade'
+            Width = 105
+          end        
+          item
+            Title.Caption = 'Ativo'
+            Width = 105
+          end>
+        FixedCols = 0
+        Options = [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine, goRangeSelect, goRowSelect, goSmoothScroll]
+        RowCount = 1
+        TabOrder = 1
+        ColWidths = (
+          106
+          105
+          105
+          105
+          105
+          105
+          105
+          105
+          105
+        )
+      end
+    end
+  end
+  object OpenDialogMedia: TOpenDialog
+    Title = 'Selecione o arquivo de mídia (Vídeo ou Imagem)'
+    Filter = 'Todos os Arquivos de Mídia (*.mp4;*.mkv;*.avi;*.jpg;*.jpeg;*.png;*.webp)|*.mp4;*.mkv;*.avi;*.jpg;*.jpeg;*.png;*.webp|Vídeos (*.mp4;*.mkv;*.avi)|*.mp4;*.mkv;*.avi|Imagens (*.jpg;*.jpeg;*.png;*.webp)|*.jpg;*.jpeg;*.png;*.webp|Todos os Arquivos (*.*)|*.*'
+    Left = 840
+    Top = 16
+  end
+  object TimerAutoRefresh: TTimer
+    Enabled = False
+    Interval = 5000
+    OnTimer = TimerAutoRefreshTimer
+    Left = 900
+    Top = 16
+  end
+end

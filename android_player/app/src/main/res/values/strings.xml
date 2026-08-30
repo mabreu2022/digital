@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Digital Signage Player</string>
+    <string name="syncing_schedule">Sincronizando grade de reprodução...</string>
+    <string name="waiting_content">Aguardando download de mídias...</string>
+</resources>

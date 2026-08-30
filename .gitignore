@@ -1,0 +1,57 @@
+# ==========================================
+# Free Pascal / Lazarus
+# ==========================================
+backup/
+*/backup/
+*.bak
+*.o
+*.ppu
+*.or
+*.lps
+*.compiled
+*.stat
+*.rst
+*.a
+*.so
+*.dll
+*.dylib
+*.exe
+
+# Binaries (preserve directory structure with .gitkeep if needed)
+server/bin/server
+player/bin/player
+
+# Media uploads (large binary files)
+server/media/*
+!server/media/.gitkeep
+server/bin/media/*
+!server/bin/media/.gitkeep
+
+# ==========================================
+# Android / Gradle / Kotlin / IntelliJ
+# ==========================================
+.gradle/
+build/
+*/build/
+app/build/
+android_player/build/
+android_player/app/build/
+android_player/.gradle/
+android_player/local.properties
+android_player/.idea/
+android_player/*.iml
+android_player/app/*.iml
+.idea/
+*.iml
+*.apk
+*.aab
+*.dex
+.cxx/
+
+# ==========================================
+# OS / System
+# ==========================================
+.DS_Store
+Thumbs.db
+*~
+*.swp

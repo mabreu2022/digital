@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manual do Software - Digital Signage Enterprise</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-main: #0b0f19;
+      --bg-card: #131b2e;
+      --bg-card-hover: #1c2742;
+      --bg-sidebar: #0e1526;
+      --primary: #00d2ff;
+      --primary-gradient: linear-gradient(135deg, #00d2ff 0%, #3a7bd5 100%);
+      --accent: #00e676;
+      --accent-warn: #ffab00;
+      --accent-danger: #ff5252;
+      --text-main: #e2e8f0;
+      --text-muted: #94a3b8;
+      --text-heading: #f8fafc;
+      --border-color: #1e293b;
+      --code-bg: #070a12;
+      --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: var(--bg-main);
+      color: var(--text-main);
+      line-height: 1.65;
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: 300px;
+      background-color: var(--bg-sidebar);
+      border-right: 1px solid var(--border-color);
+      padding: 2rem 1.5rem;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+      flex-shrink: 0;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 2rem;
+      padding-bottom: 1.25rem;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .brand-icon {
+      width: 42px;
+      height: 42px;
+      border-radius: 10px;
+      background: var(--primary-gradient);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.4rem;
+      box-shadow: 0 0 15px rgba(0, 210, 255, 0.4);
+    }
+
+    .brand-text h1 {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--text-heading);
+      letter-spacing: -0.5px;
+    }
+
+    .brand-text span {
+      font-size: 0.75rem;
+      color: var(--primary);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      font-weight: 600;
+    }
+
+    .nav-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+
+    .nav-item a {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.65rem 0.85rem;
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.88rem;
+      font-weight: 500;
+      border-radius: 8px;
+      transition: all 0.2s ease;
+    }
+
+    .nav-item a:hover, .nav-item a.active {
+      color: #fff;
+      background: rgba(0, 210, 255, 0.12);
+      border-left: 3px solid var(--primary);
+      padding-left: calc(0.85rem - 3px);
+    }
+
+    /* Main Content */
+    .content {
+      flex: 1;
+      padding: 3rem 4rem;
+      max-width: 1200px;
+      overflow-y: auto;
+    }
+
+    header.doc-header {
+      margin-bottom: 3rem;
+      padding-bottom: 2rem;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 0.25rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 1rem;
+      background: rgba(0, 210, 255, 0.15);
+      color: var(--primary);
+      border: 1px solid rgba(0, 210, 255, 0.3);
+    }
+
+    .badge.success {
+      background: rgba(0, 230, 118, 0.15);
+      color: var(--accent);
+      border-color: rgba(0, 230, 118, 0.3);
+    }
+
+    h1.doc-title {
+      font-size: 2.5rem;
+      font-weight: 800;
+      color: var(--text-heading);
+      letter-spacing: -1px;
+      margin-bottom: 0.75rem;
+    }
+
+    p.lead {
+      font-size: 1.15rem;
+      color: var(--text-muted);
+      max-width: 800px;
+    }
+
+    section {
+      margin-bottom: 3.5rem;
+      scroll-margin-top: 2rem;
+    }
+
+    h2 {
+      font-size: 1.65rem;
+      font-weight: 700;
+      color: var(--text-heading);
+      letter-spacing: -0.5px;
+      margin-bottom: 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    h3 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--text-heading);
+      margin: 1.5rem 0 0.75rem 0;
+    }
+
+    p {
+      margin-bottom: 1rem;
+      color: var(--text-main);
+    }
+
+    /* Cards & Grid */
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.25rem;
+      margin: 1.5rem 0;
+    }
+
+    .card {
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 1.5rem;
+      transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    }
+
+    .card:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--shadow);
+      border-color: rgba(0, 210, 255, 0.4);
+    }
+
+    .card-icon {
+      font-size: 2rem;
+      margin-bottom: 1rem;
+    }
+
+    .card h4 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--text-heading);
+      margin-bottom: 0.5rem;
+    }
+
+    .card p {
+      font-size: 0.88rem;
+      color: var(--text-muted);
+      margin-bottom: 0;
+    }
+
+    /* Code Blocks */
+    pre {
+      background-color: var(--code-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 1.25rem;
+      overflow-x: auto;
+      margin: 1.25rem 0;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.88rem;
+      color: #38bdf8;
+      box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.4);
+    }
+
+    code {
+      font-family: 'JetBrains Mono', monospace;
+      background: rgba(255, 255, 255, 0.08);
+      padding: 0.2rem 0.4rem;
+      border-radius: 4px;
+      font-size: 0.85em;
+      color: #38bdf8;
+    }
+
+    pre code {
+      background: none;
+      padding: 0;
+      color: inherit;
+    }
+
+    /* Alerts */
+    .alert {
+      padding: 1.25rem 1.5rem;
+      border-radius: 10px;
+      margin: 1.5rem 0;
+      display: flex;
+      gap: 1rem;
+      align-items: flex-start;
+      border: 1px solid;
+    }
+
+    .alert.info {
+      background: rgba(0, 210, 255, 0.08);
+      border-color: rgba(0, 210, 255, 0.3);
+    }
+
+    .alert.success {
+      background: rgba(0, 230, 118, 0.08);
+      border-color: rgba(0, 230, 118, 0.3);
+    }
+
+    .alert.warning {
+      background: rgba(255, 171, 0, 0.08);
+      border-color: rgba(255, 171, 0, 0.3);
+    }
+
+    .alert-icon {
+      font-size: 1.3rem;
+      line-height: 1;
+    }
+
+    .alert-body p {
+      margin-bottom: 0.35rem;
+    }
+
+    .alert-body p:last-child {
+      margin-bottom: 0;
+    }
+
+    /* Tables */
+    .table-container {
+      overflow-x: auto;
+      margin: 1.5rem 0;
+      border-radius: 10px;
+      border: 1px solid var(--border-color);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 0.9rem;
+    }
+
+    th, td {
+      padding: 0.85rem 1.15rem;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    th {
+      background-color: var(--bg-card);
+      color: var(--text-heading);
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 0.5px;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    tr:hover td {
+      background-color: rgba(255, 255, 255, 0.02);
+    }
+
+    /* Steps List */
+    .steps {
+      list-style: none;
+      counter-reset: step-counter;
+      margin: 1.5rem 0;
+    }
+
+    .step-item {
+      position: relative;
+      padding-left: 3.25rem;
+      margin-bottom: 1.75rem;
+    }
+
+    .step-item::before {
+      counter-increment: step-counter;
+      content: counter(step-counter);
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 2.25rem;
+      height: 2.25rem;
+      background: var(--primary-gradient);
+      color: #fff;
+      font-weight: 700;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.95rem;
+      box-shadow: 0 0 12px rgba(0, 210, 255, 0.35);
+    }
+
+    .step-item h4 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--text-heading);
+      margin-bottom: 0.35rem;
+    }
+
+    /* Footer */
+    footer {
+      margin-top: 4rem;
+      padding-top: 2rem;
+      border-top: 1px solid var(--border-color);
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    @media (max-width: 900px) {
+      body {
+        flex-direction: column;
+      }
+      .sidebar {
+        width: 100%;
+        height: auto;
+        position: relative;
+      }
+      .content {
+        padding: 2rem 1.5rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Sidebar Navigation -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-icon">📺</div>
+      <div class="brand-text">
+        <h1>Digital Signage</h1>
+        <span>Manual do Sistema</span>
+      </div>
+    </div>
+    <ul class="nav-list">
+      <li class="nav-item"><a href="#visao-geral" class="active">🌟 1. Visão Geral</a></li>
+      <li class="nav-item"><a href="#arquitetura">🏛️ 2. Arquitetura</a></li>
+      <li class="nav-item"><a href="#servidor-gui">🖥️ 3. Servidor CMS (GUI)</a></li>
+      <li class="nav-item"><a href="#midias-playlists">🎬 4. Mídias & Playlists</a></li>
+      <li class="nav-item"><a href="#agendamentos">📅 5. Agendamentos</a></li>
+      <li class="nav-item"><a href="#player-android">📱 6. Player Android</a></li>
+      <li class="nav-item"><a href="#player-desktop">💻 7. Player Desktop (LCL)</a></li>
+      <li class="nav-item"><a href="#banco-firebird">🗄️ 8. Banco Firebird 5.0</a></li>
+      <li class="nav-item"><a href="#api-rest">📡 9. Referência da API</a></li>
+      <li class="nav-item"><a href="#troubleshooting">🛠️ 10. Solução de Problemas</a></li>
+    </ul>
+  </aside>
+
+  <!-- Main Content Area -->
+  <main class="content">
+    <header class="doc-header">
+      <div class="badge success">Versão 1.0.0 • Offline-First Enterprise</div>
+      <h1 class="doc-title">Manual do Software Digital Signage</h1>
+      <p class="lead">Guia definitivo para operação, configuração de rede, gerenciamento de mídias, agendamento de campanhas e instalação dos players Android e Desktop.</p>
+    </header>
+
+    <!-- 1. Visão Geral -->
+    <section id="visao-geral">
+      <h2>🌟 1. Visão Geral do Sistema</h2>
+      <p>O <strong>Digital Signage Enterprise</strong> é uma plataforma robusta de sinalização digital e mídia indoor projetada para operar em regime contínuo (24/7) com arquitetura <strong>Offline-First</strong>.</p>
+      
+      <div class="cards-grid">
+        <div class="card">
+          <div class="card-icon">⚡</div>
+          <h4>Operação Offline-First</h4>
+          <p>Se a rede cair ou o servidor for reiniciado, os players continuam exibindo a programação em cache sem nenhuma tela preta ou interrupção.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">🎯</div>
+          <h4>Direcionamento Inteligente</h4>
+          <p>Mídias e campanhas podem ser veiculadas globalmente para todas as telas ou direcionadas especificamente por IP ou identificador de tela.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">🔒</div>
+          <h4>Integridade por MD5</h4>
+          <p>Todos os vídeos e imagens são verificados com hash criptográfico MD5 antes da reprodução, impedindo arquivos corrompidos.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. Arquitetura -->
+    <section id="arquitetura">
+      <h2>🏛️ 2. Arquitetura do Sistema</h2>
+      <p>O ecossistema é composto por quatro módulos integrados:</p>
+
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Módulo</th>
+              <th>Tecnologia</th>
+              <th>Função Principal</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Servidor CMS</strong></td>
+              <td>Lazarus / Free Pascal (LCL + fphttpserver)</td>
+              <td>Painel visual para gestão de mídias, agendamentos, monitor de logs e API REST.</td>
+            </tr>
+            <tr>
+              <td><strong>Banco de Dados</strong></td>
+              <td>Firebird 5.0 (SuperServer)</td>
+              <td>Armazenamento relacional de telas, playlists, agendamentos e registros de auditoria (Proof-of-Play).</td>
+            </tr>
+            <tr>
+              <td><strong>Player Android</strong></td>
+              <td>Kotlin + Jetpack Compose + ExoPlayer</td>
+              <td>Aplicativo para Smart TVs, TV Boxes e Smartphones com aceleração por hardware.</td>
+            </tr>
+            <tr>
+              <td><strong>Player Desktop</strong></td>
+              <td>Lazarus / Free Pascal + LibVLC</td>
+              <td>Player nativo fullscreen para totens e PCs rodando Linux ou Windows.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 3. Servidor CMS -->
+    <section id="servidor-gui">
+      <h2>🖥️ 3. Painel Visual do Servidor (CMS)</h2>
+      <p>O servidor possui uma interface desktop amigável em Lazarus para controle total do sistema:</p>
+
+      <div class="alert info">
+        <div class="alert-icon">💡</div>
+        <div class="alert-body">
+          <p><strong>Como iniciar o Servidor:</strong></p>
+          <p>No terminal: <code>cd "/home/mauricio/Fontes Lazarus/Digital sign/server" && ./bin/server</code></p>
+          <p>Ou no Lazarus IDE: Abra <code>server/Server.lpi</code> e pressione <strong>F9</strong>.</p>
+        </div>
+      </div>
+
+      <h3>Recursos do Painel do Servidor:</h3>
+      <ul class="steps">
+        <li class="step-item">
+          <h4>Aba Servidor & Monitor</h4>
+          <p>Permite iniciar/parar o servidor HTTP na porta desejada (padrão <code>8080</code>), configurar o endereço do Firebird e acompanhar as requisições dos players em tempo real na caixa de logs.</p>
+        </li>
+        <li class="step-item">
+          <h4>Aba Telas & Players</h4>
+          <p>Exibe todas as telas que se auto-registraram na rede, mostrando o IP Local, status ONLINE/OFFLINE, versão do app e última telemetria (Heartbeat).</p>
+        </li>
+      </ul>
+    </section>
+
+    <!-- 4. Mídias & Playlists -->
+    <section id="midias-playlists">
+      <h2>🎬 4. Gerenciamento de Mídias e Playlists</h2>
+      
+      <div class="cards-grid">
+        <div class="card">
+          <h4>👁️ Pré-visualização Instantânea</h4>
+          <p>Ao clicar em qualquer linha do catálogo de mídias, o painel lateral direito exibe o preview da imagem, dimensões (WxH), tamanho e hash MD5.</p>
+        </div>
+        <div class="card">
+          <h4>▶️ Reprodução no Player do Sistema</h4>
+          <p>Para vídeos e mídias selecionadas, o botão <strong>"▶️ Reproduzir / Abrir no Player"</strong> abre o arquivo no player padrão do sistema com áudio e controles completos.</p>
+        </div>
+        <div class="card">
+          <h4>📁 Acesso Direto aos Arquivos</h4>
+          <p>O botão <strong>"📁 Abrir Pasta de Mídias"</strong> abre o explorador de arquivos diretamente no diretório de mídias do servidor.</p>
+        </div>
+      </div>
+
+      <h3>Como Cadastrar Novas Mídias:</h3>
+      <ol class="steps">
+        <li class="step-item">
+          <h4>Acesse a aba "Catálogo de Mídias"</h4>
+          <p>Clique no botão <strong>"➕ Adicionar Mídia (Vídeo / Img)"</strong>.</p>
+        </li>
+        <li class="step-item">
+          <h4>Selecione o Arquivo</h4>
+          <p>Formatos suportados: Vídeos (<code>.mp4</code>, <code>.mkv</code>, <code>.avi</code>) e Imagens (<code>.jpg</code>, <code>.png</code>, <code>.webp</code>).</p>
+        </li>
+        <li class="step-item">
+          <h4>Processamento Automático</h4>
+          <p>O sistema copia o arquivo para o diretório <code>server/bin/media/</code>, calcula o Hash MD5 e cadastra no banco de dados.</p>
+        </li>
+      </ol>
+
+      <h3>Montagem de Playlists:</h3>
+      <p>Na aba <strong>"Playlists"</strong>, você pode criar grades personalizadas, definir a <strong>Playlist Padrão (Fallback)</strong> e organizar os itens com botões de <strong>Subir ⬆</strong> e <strong>Descer ⬇</strong> para reordenar a sequência.</p>
+    </section>
+
+    <!-- 5. Agendamentos -->
+    <section id="agendamentos">
+      <h2>📅 5. Agendamentos e Direcionamento por IP/Tela</h2>
+      <p>O agendador permite criar campanhas com restrições horárias e escolher o público-alvo de cada exibição:</p>
+
+      <div class="cards-grid">
+        <div class="card">
+          <h4>🌐 Direcionamento Global</h4>
+          <p>Selecione <strong>"[TODAS AS TELAS - GLOBAL]"</strong> para que todas as telas exibam a campanha.</p>
+        </div>
+        <div class="card">
+          <h4>🎯 Direcionamento por Tela / IP</h4>
+          <p>Selecione uma tela específica da lista para veicular conteúdos segmentados (ex: Totem Entrada, TV Refeitório).</p>
+        </div>
+        <div class="card">
+          <h4>⏰ Janela Diária de Horários</h4>
+          <p>Defina horários específicos (ex: das <code>11:30:00</code> às <code>14:00:00</code> para cardápio de almoço).</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 6. Player Android -->
+    <section id="player-android">
+      <h2>📱 6. Player Android (TV Box, Smart TV & Smartphones)</h2>
+      
+      <h3>Configuração de IP e Porta no Celular:</h3>
+      <ol class="steps">
+        <li class="step-item">
+          <h4>Abrir Diálogo de Configuração</h4>
+          <p>Ao abrir o aplicativo, toque no botão <strong>"⚙️ Configurar Servidor"</strong> localizado no canto superior da tela ou na mensagem central.</p>
+        </li>
+        <li class="step-item">
+          <h4>Definir IP e Porta</h4>
+          <p>Insira o IP da máquina servidora na rede local (ex: <code>192.168.15.119</code>) e a Porta (ex: <code>8080</code>).</p>
+        </li>
+        <li class="step-item">
+          <h4>Testar Conexão</h4>
+          <p>Toque em <strong>"Testar Conexão"</strong> para obter feedback visual imediato (Verde = Conexão estabelecida com sucesso).</p>
+        </li>
+        <li class="step-item">
+          <h4>Salvar e Sincronizar</h4>
+          <p>Toque em <strong>"Salvar e Sincronizar"</strong> para baixar os vídeos/imagens e iniciar a reprodução em loop contínuo.</p>
+        </li>
+      </ol>
+
+      <div class="alert success">
+        <div class="alert-icon">🚀</div>
+        <div class="alert-body">
+          <p><strong>Inicialização Automática no Boot:</strong></p>
+          <p>O aplicativo possui o receiver <code>BootCompletedReceiver</code> configurado para abrir automaticamente quando a TV Box ou dispositivo Android for ligado na tomada.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 7. Player Desktop -->
+    <section id="player-desktop">
+      <h2>💻 7. Player Desktop (Lazarus / Linux & Windows)</h2>
+      <p>O player desktop roda nativamente em computadores e totens interativos:</p>
+      <pre><code># Executar o Player Desktop:
+cd "/home/mauricio/Fontes Lazarus/Digital sign/player"
+./bin/player</code></pre>
+      <p>Ele utiliza a biblioteca <strong>LibVLC</strong> para reprodução acelerada por GPU e suporta Kiosk Mode em tela cheia sem bordas.</p>
+    </section>
+
+    <!-- 8. Banco Firebird -->
+    <section id="banco-firebird">
+      <h2>🗄️ 8. Banco de Dados Firebird 5.0</h2>
+      <p>Estrutura das tabelas relacionais do sistema:</p>
+
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Tabela</th>
+              <th>Descrição</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>TELAS</code></td>
+              <td>Cadastro e telemetria de cada player (UUID, IP, status, versão).</td>
+            </tr>
+            <tr>
+              <td><code>MIDIAS</code></td>
+              <td>Catálogo de arquivos de vídeo e imagem com MD5 e tamanho.</td>
+            </tr>
+            <tr>
+              <td><code>PLAYLISTS</code></td>
+              <td>Grades de programação (indicando se é padrão de fallback).</td>
+            </tr>
+            <tr>
+              <td><code>PLAYLIST_ITENS</code></td>
+              <td>Associação de mídias, ordem de exibição, duração e transições.</td>
+            </tr>
+            <tr>
+              <td><code>AGENDAMENTOS</code></td>
+              <td>Regras de veiculação por tela/IP, datas, horários e dias da semana.</td>
+            </tr>
+            <tr>
+              <td><code>LOGS_EXIBICAO</code></td>
+              <td>Auditoria e Proof-of-Play com registro de cada exibição realizada.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 9. Referência da API REST -->
+    <section id="api-rest">
+      <h2>📡 9. Referência da API REST</h2>
+
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Método</th>
+              <th>Endpoint</th>
+              <th>Descrição</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="badge">POST</span></td>
+              <td><code>/api/v1/players/register</code></td>
+              <td>Auto-registro e atualização cadastral do player.</td>
+            </tr>
+            <tr>
+              <td><span class="badge">GET</span></td>
+              <td><code>/api/v1/players/{uuid}/sync</code></td>
+              <td>Retorna a grade horária ativa, mídias e playlist de fallback.</td>
+            </tr>
+            <tr>
+              <td><span class="badge">POST</span></td>
+              <td><code>/api/v1/players/{uuid}/heartbeat</code></td>
+              <td>Ping de telemetria periódico (status, espaço livre, mídia atual).</td>
+            </tr>
+            <tr>
+              <td><span class="badge">POST</span></td>
+              <td><code>/api/v1/players/{uuid}/proof-of-play</code></td>
+              <td>Envio em lote do histórico de exibições concluídas.</td>
+            </tr>
+            <tr>
+              <td><span class="badge success">GET</span></td>
+              <td><code>/media/{filename}</code></td>
+              <td>Download e streaming direto de vídeos e imagens com suporte a cache.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 10. Solução de Problemas -->
+    <section id="troubleshooting">
+      <h2>🛠️ 10. Guia de Solução de Problemas (Troubleshooting)</h2>
+
+      <div class="alert warning">
+        <div class="alert-icon">⚠️</div>
+        <div class="alert-body">
+          <p><strong>O celular/player não conecta no servidor:</strong></p>
+          <p>1. Verifique se o celular está conectado na <strong>mesma rede Wi-Fi/LAN</strong> do servidor.</p>
+          <p>2. Certifique-se de que o firewall do Linux permite a porta 8080: <code>sudo ufw allow 8080/tcp</code>.</p>
+          <p>3. No app Android, toque em "⚙️ Configurar Servidor", digite o IP correto do computador e clique em "Testar Conexão".</p>
+        </div>
+      </div>
+
+      <div class="alert info">
+        <div class="alert-icon">ℹ️</div>
+        <div class="alert-body">
+          <p><strong>Mídia com erro de reprodução:</strong></p>
+          <p>Verifique se o arquivo de vídeo é compatível com H.264 / AAC em formato <code>.mp4</code>. O sistema valida automaticamente o Hash MD5 para garantir que o download foi concluído sem corrupção.</p>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      <p>© 2026 Digital Signage Enterprise. Todos os direitos reservados.</p>
+      <p>Desenvolvido com Lazarus / Free Pascal, Firebird 5.0 e Android Kotlin.</p>
+    </footer>
+  </main>
+
+  <script>
+    // Smooth scrolling & active nav tracking
+    document.querySelectorAll('.nav-item a').forEach(link => {
+      link.addEventListener('click', function(e) {
+        document.querySelectorAll('.nav-item a').forEach(l => l.classList.remove('active'));
+        this.classList.add('active');
+      });
+    });
+  </script>
+</body>
+</html>
