@@ -167,7 +167,7 @@ begin
     RootObj.Add('player_name', QryPlayer.FieldByName('NOME').AsString);
     RootObj.Add('volume', QryPlayer.FieldByName('VOLUME_AUDIO').AsInteger);
 
-    // 3. Localizar Agendamentos ESPECÍFICOS para esta Tela (por ID ou por Nome da Tela).
+    // 3. Localizar Agendamentos ESPECÍFICOS para esta Tela (por ID da tela, Nome da Tela ou Nome do Evento).
     // Se a tela tiver agendamento próprio, NÃO puxa agendamento de outras telas nem global!
     QrySchedules.SQL.Text :=
       'SELECT A.ID AS SCHED_ID, A.NOME_EVENTO, A.DATA_INICIO, A.DATA_FIM, ' +
@@ -176,10 +176,16 @@ begin
       'FROM AGENDAMENTOS A ' +
       'INNER JOIN PLAYLISTS P ON P.ID = A.PLAYLIST_ID ' +
       'LEFT JOIN TELAS T_SCHED ON T_SCHED.ID = A.TELA_ID ' +
-      'WHERE (A.TELA_ID = :TELA_ID OR LOWER(TRIM(T_SCHED.NOME)) = LOWER(TRIM(:PNAME)) OR (A.TELA_ID IS NULL AND NOT EXISTS ( ' +
+      'WHERE ( ' +
+      '       A.TELA_ID = :TELA_ID ' +
+      '    OR LOWER(TRIM(T_SCHED.NOME)) = LOWER(TRIM(:PNAME)) ' +
+      '    OR LOWER(TRIM(A.NOME_EVENTO)) = LOWER(TRIM(:PNAME)) ' +
+      '    OR (A.TELA_ID IS NULL AND NOT EXISTS ( ' +
       '       SELECT 1 FROM AGENDAMENTOS A2 ' +
       '       LEFT JOIN TELAS T2 ON T2.ID = A2.TELA_ID ' +
-      '       WHERE (A2.TELA_ID = :TELA_ID OR LOWER(TRIM(T2.NOME)) = LOWER(TRIM(:PNAME))) AND A2.ATIVO = 1 AND A2.DATA_FIM >= CURRENT_DATE))) ' +
+      '       WHERE (A2.TELA_ID = :TELA_ID OR LOWER(TRIM(T2.NOME)) = LOWER(TRIM(:PNAME)) OR LOWER(TRIM(A2.NOME_EVENTO)) = LOWER(TRIM(:PNAME))) ' +
+      '         AND A2.ATIVO = 1 AND A2.DATA_FIM >= CURRENT_DATE)) ' +
+      ') ' +
       '  AND A.ATIVO = 1 ' +
       '  AND P.ATIVA = 1 ' +
       '  AND A.DATA_FIM >= CURRENT_DATE ' +
