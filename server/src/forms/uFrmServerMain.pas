@@ -8,7 +8,7 @@ uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, ComCtrls, ExtCtrls,
   StdCtrls, Grids, Buttons, IniFiles, md5, FileUtil, LazFileUtils, LCLIntf,
   fphttpserver, httpdefs, sqldb, IBConnection,
-  uDbConnection, uSignageQueries, uPlayerApiController, uLibVlcWrapper;
+  uDbConnection, uSignageQueries, uPlayerApiController, uLibVlcWrapper, uMediaDurationDetector;
 
 type
   { Thread do Servidor HTTP }
@@ -805,7 +805,7 @@ end;
 
 procedure TFrmServerMain.BtnAddYouTubeClick(Sender: TObject);
 var
-  UrlStr, NomeStr, DuracaoStr, VideoId, HashVal: string;
+  UrlStr, NomeStr, VideoId, HashVal: string;
   DuracaoSec: Integer;
   Conn: TIBConnection;
   Trans: TSQLTransaction;
@@ -827,9 +827,8 @@ begin
   NomeStr := Trim(NomeStr);
   if NomeStr = '' then NomeStr := 'YouTube - ' + VideoId;
 
-  DuracaoStr := InputBox('Duração de Exibição', 'Tempo de exibição nesta playlist em segundos (ex: 30, 60, 180):', '60');
-  DuracaoSec := StrToIntDef(Trim(DuracaoStr), 60);
-  if DuracaoSec <= 0 then DuracaoSec := 60;
+  // Vídeos do YouTube tocam 100% até o fim nativo
+  DuracaoSec := 0;
 
   // Gerar MD5 a partir do ID do YouTube para unicidade
   HashVal := MD5Print(MD5String('youtube:' + VideoId));
@@ -877,7 +876,7 @@ begin
 
     Trans.Commit;
 
-    LogMessage('Mídia YouTube "' + NomeStr + '" gravada com sucesso!');
+    LogMessage('Mídia YouTube "' + NomeStr + '" gravada com sucesso (Reprodução integral até o fim)!');
     BtnRefreshMidiasClick(Self);
     ShowMessage('Vídeo do YouTube cadastrado com sucesso no catálogo de mídias!');
   finally
@@ -905,9 +904,13 @@ begin
   if DisplayName = '' then DisplayName := FileName;
 
   if TipoMidia = 'VIDEO' then
-    DuracaoSec := StrToIntDef(InputBox('Duração', 'Duração aproximada em segundos:', '15'), 15)
+  begin
+    // Detecta duração real do vídeo automaticamente sem intervenção do usuário
+    DuracaoSec := DetectVideoDurationSeconds(SourceFile);
+    LogMessage(Format('Vídeo "%s": Duração detectada automaticamente = %d segundos', [DisplayName, DuracaoSec]));
+  end
   else
-    DuracaoSec := StrToIntDef(InputBox('Duração', 'Tempo de exibição do banner em segundos:', '10'), 10);
+    DuracaoSec := 10; // Duração padrão de exibição de imagens em segundos
 
   Conn := FDbManager.CreateConnection(Trans);
   Qry := TSQLQuery.Create(nil);
@@ -953,7 +956,7 @@ begin
     Trans.Commit;
 
     BtnRefreshMidiasClick(Self);
-    LogMessage(Format('Mídia "%s" (%s, MD5: %s) adicionada com sucesso!', [DisplayName, TipoMidia, MD5Str]));
+    LogMessage(Format('Mídia "%s" (%s, %ds) adicionada com sucesso ao catálogo!', [DisplayName, TipoMidia, DuracaoSec]));
     ShowMessage('Mídia adicionada com sucesso ao catálogo!');
   finally
     Qry.Free;
@@ -1594,7 +1597,15 @@ begin
       Exit;
     end;
 
-    DuracaoSec := StrToIntDef(InputBox('Duração', 'Tempo de exibição nesta playlist (segundos):', '10'), 10);
+    // Herda a duração padrão da mídia automaticamente (sem necessidade de perguntar ao usuário)
+    Qry.Close;
+    Qry.SQL.Text := 'SELECT TIPO_MIDIA, DURACAO_PADRAO_SEG FROM MIDIAS WHERE ID = :MID';
+    Qry.ParamByName('MID').AsLargeInt := MidiaID;
+    Qry.Open;
+    if not Qry.EOF then
+      DuracaoSec := Qry.FieldByName('DURACAO_PADRAO_SEG').AsInteger
+    else
+      DuracaoSec := 10;
 
     // Calcular próxima ordem
     Qry.Close;

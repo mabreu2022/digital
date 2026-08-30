@@ -688,15 +688,35 @@
     startMediaTicker(item) {
       clearInterval(this.timerTicker);
 
-      // Para imagens, conta os segundos até avançar.
-      // Para vídeos, o evento 'ended' ou o timer máximo avança a mídia.
-      this.timerTicker = setInterval(() => {
-        this.remainingSeconds--;
-        if (this.remainingSeconds <= 0) {
-          clearInterval(this.timerTicker);
-          this.onMediaEnded();
-        }
-      }, 1000);
+      const isVideo = (item.type === 'VIDEO' || item.type === 'STREAM' || item.type === 'YOUTUBE' || 
+                       (item.filename && item.filename.startsWith('youtube_')) ||
+                       (item.downloadUrl && (item.downloadUrl.includes('youtube') || item.downloadUrl.includes('youtu.be'))));
+
+      if (isVideo) {
+        // Vídeos locais e vídeos do YouTube tocam 100% até o fim nativo (evento 'ended' / 'ENDED').
+        // O ticker serve apenas como watchdog de segurança para não travar em conexões caídas.
+        const watchdogLimit = Math.max(item.durationSec > 0 ? (item.durationSec + 15) : 7200, 7200);
+        let elapsed = 0;
+        this.timerTicker = setInterval(() => {
+          elapsed++;
+          if (elapsed >= watchdogLimit) {
+            console.warn('[WebPlayer] Watchdog de segurança atingido para vídeo:', item.filename);
+            clearInterval(this.timerTicker);
+            this.onMediaEnded();
+          }
+        }, 1000);
+      } else {
+        // Imagens estáticas: respeita a duração do slide (padrão 10s)
+        const duration = item.durationSec > 0 ? item.durationSec : 10;
+        this.remainingSeconds = duration;
+        this.timerTicker = setInterval(() => {
+          this.remainingSeconds--;
+          if (this.remainingSeconds <= 0) {
+            clearInterval(this.timerTicker);
+            this.onMediaEnded();
+          }
+        }, 1000);
+      }
     }
 
     onMediaEnded() {
