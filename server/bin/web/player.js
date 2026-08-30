@@ -59,6 +59,7 @@
         osdLabel: document.getElementById('osdLabel'),
         floatingControls: document.getElementById('floatingControls'),
         settingsModal: document.getElementById('settingsModal'),
+        selectPlayerProfile: document.getElementById('selectPlayerProfile'),
         inputName: document.getElementById('inputPlayerName'),
         inputUuid: document.getElementById('inputPlayerUuid'),
         btnSaveSettings: document.getElementById('btnSaveSettings'),
@@ -195,6 +196,17 @@
       }
       if (this.dom.btnCloseSettings) {
         this.dom.btnCloseSettings.addEventListener('click', () => this.closeSettings());
+      }
+      if (this.dom.selectPlayerProfile) {
+        this.dom.selectPlayerProfile.addEventListener('change', (e) => {
+          const opt = e.target.selectedOptions[0];
+          if (opt && opt.dataset.uuid) {
+            this.uuid = opt.dataset.uuid;
+            this.name = opt.dataset.name || this.name;
+            if (this.dom.inputName) this.dom.inputName.value = this.name;
+            if (this.dom.inputUuid) this.dom.inputUuid.value = this.uuid;
+          }
+        });
       }
       if (this.dom.btnSaveSettings) {
         this.dom.btnSaveSettings.addEventListener('click', () => this.saveSettings());
@@ -439,11 +451,11 @@
       let targetPlaylist = null;
       let isFallback = true;
 
-      // 1. Verificar agendamentos ativos
+      // 1. Verificar agendamentos ativos específicos desta tela
       if (this.syncData.schedules && this.syncData.schedules.length > 0) {
         const activeRules = this.syncData.schedules.filter(rule => this.isRuleActive(rule, now));
         if (activeRules.length > 0) {
-          // Escolher maior prioridade
+          // Escolher agendamento de maior prioridade
           activeRules.sort((a, b) => (b.priority || 0) - (a.priority || 0));
           const best = activeRules[0];
           if (best.playlist && best.playlist.items && best.playlist.items.length > 0) {
@@ -454,17 +466,17 @@
       }
 
       // 2. Se nenhum agendamento bateu, usa playlist padrão de Fallback
-      if (!targetPlaylist && this.syncData.fallback_playlist && this.syncData.fallback_playlist.items) {
+      if (!targetPlaylist && this.syncData.fallback_playlist && this.syncData.fallback_playlist.items && this.syncData.fallback_playlist.items.length > 0) {
         targetPlaylist = this.syncData.fallback_playlist;
         isFallback = true;
       }
 
       if (!targetPlaylist || targetPlaylist.items.length === 0) {
-        this.showIdleScreen('Nenhuma mídia configurada na playlist ativa.');
+        this.showIdleScreen('Nenhuma mídia na grade ativa para: ' + (this.syncData.player_name || this.name));
         return;
       }
 
-      // Se trocou de playlist, reseta o índice
+      // Se trocou de playlist, reseta o índice imediatamente
       if (!this.currentPlaylist || this.currentPlaylist.id !== targetPlaylist.id) {
         this.currentPlaylist = targetPlaylist;
         this.currentIndex = 0;
@@ -490,18 +502,22 @@
 
     isRuleActive(rule, now) {
       try {
-        // Validação de Data (AAAA-MM-DD)
-        const dateStr = now.toISOString().split('T')[0];
+        // Validação de Data Local (AAAA-MM-DD)
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        const dateStr = `${year}-${month}-${day}`;
+
         if (rule.start_date && dateStr < rule.start_date) return false;
         if (rule.end_date && dateStr > rule.end_date) return false;
 
         // Validação de Dia da Semana (Máscara 7 caracteres: Dom=0, Seg=1... Sab=6)
         if (rule.days_of_week && rule.days_of_week.length === 7) {
-          const dayIdx = now.getDay(); // 0 = Domingo, 1 = Segunda ...
+          const dayIdx = now.getDay();
           if (rule.days_of_week[dayIdx] !== '1') return false;
         }
 
-        // Validação de Janela de Horário (HH:MM:SS)
+        // Validação de Janela de Horário Local (HH:MM:SS)
         const curTimeStr = String(now.getHours()).padStart(2, '0') + ':' +
                            String(now.getMinutes()).padStart(2, '0') + ':' +
                            String(now.getSeconds()).padStart(2, '0');
@@ -802,10 +818,33 @@
     }
 
     // Configurações
-    openSettings() {
+    async openSettings() {
       this.dom.settingsModal.classList.add('open');
       this.dom.inputName.value = this.name;
       this.dom.inputUuid.value = this.uuid;
+
+      if (this.dom.selectPlayerProfile) {
+        try {
+          const res = await fetch(`${this.serverBaseUrl}/api/v1/players`);
+          if (res.ok) {
+            const list = await res.json();
+            this.dom.selectPlayerProfile.innerHTML = '<option value="">-- Selecione uma Tela Cadastrada --</option>';
+            list.forEach(p => {
+              const opt = document.createElement('option');
+              opt.value = p.uuid;
+              opt.dataset.uuid = p.uuid;
+              opt.dataset.name = p.name;
+              opt.textContent = `${p.id}: ${p.name} [${p.os || 'Web'}] (${p.ip || 'Sem IP'})`;
+              if (p.uuid === this.uuid || p.name === this.name) {
+                opt.selected = true;
+              }
+              this.dom.selectPlayerProfile.appendChild(opt);
+            });
+          }
+        } catch (e) {
+          console.warn('[WebPlayer] Falha ao listar telas:', e);
+        }
+      }
     }
 
     closeSettings() {
@@ -813,13 +852,24 @@
     }
 
     saveSettings() {
-      const newName = this.dom.inputName.value.trim();
-      if (newName) {
-        this.name = newName;
-        localStorage.setItem(CONFIG.storageKeyName, newName);
+      const selectedOpt = this.dom.selectPlayerProfile ? this.dom.selectPlayerProfile.selectedOptions[0] : null;
+      if (selectedOpt && selectedOpt.dataset && selectedOpt.dataset.uuid) {
+        this.uuid = selectedOpt.dataset.uuid;
+        this.name = selectedOpt.dataset.name || this.name;
+        localStorage.setItem(CONFIG.storageKeyUuid, this.uuid);
+        localStorage.setItem(CONFIG.storageKeyName, this.name);
+      } else {
+        const newName = this.dom.inputName.value.trim();
+        if (newName) {
+          this.name = newName;
+          localStorage.setItem(CONFIG.storageKeyName, newName);
+        }
       }
+
       this.closeSettings();
       this.updateIdleMeta();
+      this.currentPlaylist = null;
+      this.currentIndex = 0;
       this.registerPlayer();
       this.fetchSync(true);
     }

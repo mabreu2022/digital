@@ -27,6 +27,9 @@ type
     // Ingestão em lote (Batch Transaction) de registros Proof-of-Play
     class function InsertBatchProofOfPlay(const APlayerUUID, AJsonBatch: string; 
       AConn: TIBConnection; ATrans: TSQLTransaction): Integer;
+
+    // Lista todas as telas cadastradas em JSON
+    class function ListPlayersAsJson(AConn: TIBConnection; ATrans: TSQLTransaction): string;
   end;
 
 implementation
@@ -133,10 +136,20 @@ begin
     QrySchedules.Database := AConn;
     QrySchedules.Transaction := ATrans;
 
-    // 1. Identificar a Tela
+    // 1. Identificar a Tela (por UUID, por NOME ou por ID numérico)
     QryPlayer.SQL.Text := 'SELECT ID, UUID, NOME, STATUS, VOLUME_AUDIO FROM TELAS WHERE UUID = :UUID';
     QryPlayer.ParamByName('UUID').AsString := APlayerUUID;
     QryPlayer.Open;
+
+    if QryPlayer.EOF then
+    begin
+      // Fallback de busca por NOME ou ID
+      QryPlayer.Close;
+      QryPlayer.SQL.Text := 'SELECT ID, UUID, NOME, STATUS, VOLUME_AUDIO FROM TELAS WHERE NOME = :UUID OR ID = :UUID_ID';
+      QryPlayer.ParamByName('UUID').AsString := APlayerUUID;
+      QryPlayer.ParamByName('UUID_ID').AsLargeInt := StrToInt64Def(APlayerUUID, -1);
+      QryPlayer.Open;
+    end;
 
     if QryPlayer.EOF then
     begin
@@ -149,12 +162,13 @@ begin
     PlayerID := QryPlayer.FieldByName('ID').AsLargeInt;
     RootObj.Add('status', 'ok');
     RootObj.Add('server_time', FormatDateTime('yyyy-mm-dd"T"hh:nn:ss', Now));
-    RootObj.Add('player_uuid', APlayerUUID);
+    RootObj.Add('player_id', PlayerID);
+    RootObj.Add('player_uuid', QryPlayer.FieldByName('UUID').AsString);
     RootObj.Add('player_name', QryPlayer.FieldByName('NOME').AsString);
     RootObj.Add('volume', QryPlayer.FieldByName('VOLUME_AUDIO').AsInteger);
     QryPlayer.Close;
 
-    // 2. Localizar Playlist Padrão de Fallback
+    // 2. Localizar Playlist Padrão de Fallback (usada apenas se não houver agendamento)
     QryFallback.SQL.Text :=
       'SELECT ID, NOME, DESCRICAO, IS_PADRAO ' +
       'FROM PLAYLISTS ' +
@@ -183,14 +197,17 @@ begin
     end;
     QryFallback.Close;
 
-    // 3. Localizar Agendamentos Ativos para esta Tela (ou Globais onde TELA_ID é nulo)
+    // 3. Localizar Agendamentos ESPECÍFICOS para esta Tela.
+    // Se a tela tiver agendamento próprio, NÃO puxa agendamento de outras telas nem global!
     QrySchedules.SQL.Text :=
       'SELECT A.ID AS SCHED_ID, A.NOME_EVENTO, A.DATA_INICIO, A.DATA_FIM, ' +
       '       A.HORA_INICIO, A.HORA_FIM, A.DIAS_SEMANA, A.PRIORIDADE, ' +
       '       P.ID AS PLAYLIST_ID, P.NOME AS PLAYLIST_NOME ' +
       'FROM AGENDAMENTOS A ' +
       'INNER JOIN PLAYLISTS P ON P.ID = A.PLAYLIST_ID ' +
-      'WHERE (A.TELA_ID = :TELA_ID OR A.TELA_ID IS NULL) ' +
+      'WHERE (A.TELA_ID = :TELA_ID OR (A.TELA_ID IS NULL AND NOT EXISTS ( ' +
+      '       SELECT 1 FROM AGENDAMENTOS A2 ' +
+      '       WHERE A2.TELA_ID = :TELA_ID AND A2.ATIVO = 1 AND A2.DATA_FIM >= CURRENT_DATE))) ' +
       '  AND A.ATIVO = 1 ' +
       '  AND P.ATIVA = 1 ' +
       '  AND A.DATA_FIM >= CURRENT_DATE ' +
@@ -418,6 +435,38 @@ begin
   Parser.Free;
   QryPlayer.Free;
   QryInsert.Free;
+end;
+
+class function TSignageDatabaseService.ListPlayersAsJson(AConn: TIBConnection; ATrans: TSQLTransaction): string;
+var
+  Qry: TSQLQuery;
+  Arr: TJSONArray;
+  Obj: TJSONObject;
+begin
+  Arr := TJSONArray.Create;
+  Qry := TSQLQuery.Create(nil);
+  try
+    Qry.Database := AConn;
+    Qry.Transaction := ATrans;
+    Qry.SQL.Text := 'SELECT ID, UUID, NOME, IP_LOCAL, SISTEMA_OPERACIONAL, STATUS FROM TELAS ORDER BY ID ASC';
+    Qry.Open;
+    while not Qry.EOF do
+    begin
+      Obj := TJSONObject.Create;
+      Obj.Add('id', Qry.FieldByName('ID').AsLargeInt);
+      Obj.Add('uuid', Qry.FieldByName('UUID').AsString);
+      Obj.Add('name', Qry.FieldByName('NOME').AsString);
+      Obj.Add('ip', Qry.FieldByName('IP_LOCAL').AsString);
+      Obj.Add('os', Qry.FieldByName('SISTEMA_OPERACIONAL').AsString);
+      Obj.Add('status', Qry.FieldByName('STATUS').AsString);
+      Arr.Add(Obj);
+      Qry.Next;
+    end;
+    Result := Arr.AsJSON;
+  finally
+    Qry.Free;
+    Arr.Free;
+  end;
 end;
 
 end.

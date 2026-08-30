@@ -29,6 +29,7 @@ type
     
     // Handlers específicos
     procedure HandleRegister(ARequest: TRequest; AResponse: TResponse);
+    procedure HandleListPlayers(ARequest: TRequest; AResponse: TResponse);
     procedure HandleSync(const APlayerUUID: string; ARequest: TRequest; AResponse: TResponse);
     procedure HandleHeartbeat(const APlayerUUID: string; ARequest: TRequest; AResponse: TResponse);
     procedure HandleProofOfPlay(const APlayerUUID: string; ARequest: TRequest; AResponse: TResponse);
@@ -126,6 +127,13 @@ begin
   begin
     Log(Format('[REGISTER] %s requisitou auto-registro', [ClientIP]));
     HandleRegister(ARequest, AResponse);
+    Exit;
+  end;
+
+  // 1.1 GET /api/v1/players (Listar Telas)
+  if (ARequest.Method = 'GET') and ((Path = '/api/v1/players') or (Path = '/api/v1/players/')) then
+  begin
+    HandleListPlayers(ARequest, AResponse);
     Exit;
   end;
 
@@ -259,6 +267,24 @@ begin
   finally
     Parser.Free;
   end;
+end;
+
+procedure TPlayerApiController.HandleListPlayers(ARequest: TRequest; AResponse: TResponse);
+var
+  Conn: TIBConnection;
+  Trans: TSQLTransaction;
+  PlayersJson: string;
+begin
+  Conn := FDbManager.CreateConnection(Trans);
+  try
+    Conn.Connected := True;
+    PlayersJson := TSignageDatabaseService.ListPlayersAsJson(Conn, Trans);
+    Conn.Connected := False;
+  finally
+    Trans.Free;
+    Conn.Free;
+  end;
+  SendJsonResponse(AResponse, PlayersJson, 200);
 end;
 
 procedure TPlayerApiController.HandleSync(const APlayerUUID: string; ARequest: TRequest; AResponse: TResponse);
