@@ -379,6 +379,69 @@
       return 'Modern Browser';
     }
 
+    updateIdleMeta() {
+      if (this.dom.idleName) this.dom.idleName.textContent = `🖥️ ${this.name}`;
+      if (this.dom.idleRes) this.dom.idleRes.textContent = `📐 ${window.screen.width}x${window.screen.height}`;
+      if (this.dom.inputName) this.dom.inputName.value = this.name;
+      if (this.dom.inputUuid) this.dom.inputUuid.value = this.uuid;
+    }
+
+    startClock() {
+      const updateClock = () => {
+        const now = new Date();
+        const hrs = String(now.getHours()).padStart(2, '0');
+        const mins = String(now.getMinutes()).padStart(2, '0');
+        const secs = String(now.getSeconds()).padStart(2, '0');
+        if (this.dom.osdClock) {
+          this.dom.osdClock.textContent = `${hrs}:${mins}:${secs}`;
+        }
+      };
+      updateClock();
+      setInterval(updateClock, 1000);
+    }
+
+    showHudTemporarily() {
+      if (this.dom.app) this.dom.app.classList.add('show-cursor');
+      if (this.dom.osd) this.dom.osd.classList.add('visible');
+      if (this.dom.floatingControls) this.dom.floatingControls.classList.add('visible');
+
+      clearTimeout(this.mouseIdleTimer);
+      this.mouseIdleTimer = setTimeout(() => {
+        if (this.dom.app) this.dom.app.classList.remove('show-cursor');
+        if (this.dom.osd) this.dom.osd.classList.remove('visible');
+        if (this.dom.floatingControls) this.dom.floatingControls.classList.remove('visible');
+      }, CONFIG.osdHideTimeoutMs);
+    }
+
+    // Auto-registro da tela no Servidor CMS
+    async registerPlayer() {
+      try {
+        const payload = {
+          uuid: this.uuid,
+          name: this.name,
+          local_ip: window.location.hostname || '127.0.0.1',
+          mac_address: '00:00:00:00:00:00',
+          os: 'WebBrowser (' + this.detectBrowser() + ')',
+          version: '1.0.0 (Web)'
+        };
+
+        const res = await fetch(`${this.serverBaseUrl}/api/v1/players/register`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (res.ok) {
+          this.isOnline = true;
+          this.updateConnectionDot('online');
+        }
+      } catch (err) {
+        console.warn('[WebPlayer] Falha ao registrar tela:', err);
+        this.isOnline = false;
+        this.updateConnectionDot('offline');
+      }
+    }
+
     // Sincronização de Grade com o Servidor
     async fetchSync(showFeedback = false) {
       if (this.isSyncing) return;
