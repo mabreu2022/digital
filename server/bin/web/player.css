@@ -61,10 +61,25 @@ video.media-layer {
   background-color: #000000;
 }
 
-iframe.media-layer {
-  border: none;
+#youtubeContainer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
   background-color: #000000;
-  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  pointer-events: auto;
+}
+
+#youtubeContainer iframe,
+#youtubePlayer {
+  width: 100% !important;
+  height: 100% !important;
+  border: none;
 }
 
 /* Idle / Offline Screen */
@@ -135,6 +150,42 @@ iframe.media-layer {
   color: #64748b;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
   padding-top: 16px;
+}
+
+/* Audio Hint Badge */
+.audio-hint-badge {
+  position: absolute;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(37, 99, 235, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 10px 22px;
+  border-radius: 30px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  z-index: 60;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+  animation: pulse-audio 2s infinite ease-in-out;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.audio-hint-badge.hidden {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-50%) translateY(-20px);
+}
+
+@keyframes pulse-audio {
+  0%, 100% { transform: translateX(-50%) scale(1); }
+  50% { transform: translateX(-50%) scale(1.05); }
 }
 
 /* OSD (On-Screen Display) */

@@ -15,7 +15,9 @@
       <video id="videoLayerB" class="media-layer" playsinline webkit-playsinline></video>
       <img id="imageLayerA" class="media-layer" alt="Digital Signage">
       <img id="imageLayerB" class="media-layer" alt="Digital Signage">
-      <iframe id="youtubeLayer" class="media-layer" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+      <div id="youtubeContainer" class="media-layer">
+        <div id="youtubePlayer"></div>
+      </div>
     </div>
 
     <!-- Tela de Aguardo / Inicialização -->
@@ -31,15 +33,24 @@
       </div>
     </div>
 
+    <!-- Badge de Dica de Áudio (Some após primeiro clique) -->
+    <div id="audioHintBadge" class="audio-hint-badge" title="Clique em qualquer lugar para ativar o som">
+      <span>🔊</span> Clique na tela para ativar o áudio
+    </div>
+
     <!-- OSD HUD (On-Screen Display Superior) -->
     <div id="osdHud" class="osd-hud">
       <div id="statusDot" class="status-dot"></div>
       <div id="osdClock" class="clock-display">00:00:00</div>
       <span id="osdLabel">Digital Signage</span>
+      <button id="btnAudioHud" class="osd-btn" title="Alternar Áudio (A)">🔊 Som</button>
     </div>
 
     <!-- Controles Flutuantes (Aparecem ao mover o mouse) -->
     <div id="floatingControls" class="floating-controls">
+      <button id="btnToggleAudio" class="control-btn" title="Alternar Áudio (A)">
+        <span id="audioIcon">🔊</span> <span id="audioText">Áudio</span>
+      </button>
       <button id="btnFullscreen" class="control-btn" title="Alternar Tela Cheia (F)">
         <span>⛶</span> Tela Cheia
       </button>
@@ -75,6 +86,7 @@
     </div>
   </div>
 
+  <script src="https://www.youtube.com/iframe_api"></script>
   <script src="/web/player.js"></script>
 </body>
 </html>

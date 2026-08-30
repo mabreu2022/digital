@@ -39,7 +39,12 @@
         videoB: document.getElementById('videoLayerB'),
         imgA: document.getElementById('imageLayerA'),
         imgB: document.getElementById('imageLayerB'),
-        youtubeLayer: document.getElementById('youtubeLayer'),
+        youtubeContainer: document.getElementById('youtubeContainer'),
+        audioHintBadge: document.getElementById('audioHintBadge'),
+        btnAudioHud: document.getElementById('btnAudioHud'),
+        btnToggleAudio: document.getElementById('btnToggleAudio'),
+        audioIcon: document.getElementById('audioIcon'),
+        audioText: document.getElementById('audioText'),
         idleScreen: document.getElementById('idleScreen'),
         idleStatus: document.getElementById('idleStatus'),
         idleName: document.getElementById('idlePlayerName'),
@@ -63,6 +68,10 @@
       this.nextVideo = this.dom.videoB;
       this.activeImg = this.dom.imgA;
       this.nextImg = this.dom.imgB;
+      this.isAudioEnabled = localStorage.getItem('digitalsign_web_audio') === 'true';
+      this.ytPlayer = null;
+      this.isYtReady = false;
+      this.pendingYouTubeId = null;
 
       this.init();
     }
@@ -102,6 +111,7 @@
       this.setupEventListeners();
       this.startClock();
       this.updateIdleMeta();
+      this.applyAudioState();
 
       // Registro inicial e sincronização
       this.registerPlayer().then(() => {
@@ -123,15 +133,27 @@
         });
       });
 
+      // Clique em qualquer lugar da tela ativa o áudio automaticamente
+      window.addEventListener('click', (e) => {
+        if (!e.target.closest('#settingsModal')) {
+          this.enableAudio();
+        }
+      });
+
       // Mouse e interação na tela
       window.addEventListener('mousemove', () => this.showHudTemporarily());
-      window.addEventListener('touchstart', () => this.showHudTemporarily());
+      window.addEventListener('touchstart', () => {
+        this.enableAudio();
+        this.showHudTemporarily();
+      });
       window.addEventListener('dblclick', () => this.toggleFullscreen());
 
-      // Teclas de atalho (F = Tela Cheia, S/M = Configurações, R = Sincronizar)
+      // Teclas de atalho (F = Tela Cheia, A = Áudio, S/M = Configurações, R = Sincronizar)
       window.addEventListener('keydown', (e) => {
         if (e.key === 'f' || e.key === 'F') {
           this.toggleFullscreen();
+        } else if (e.key === 'a' || e.key === 'A') {
+          this.toggleAudio();
         } else if (e.key === 's' || e.key === 'S' || e.key === 'm' || e.key === 'M') {
           this.openSettings();
         } else if (e.key === 'r' || e.key === 'R') {
@@ -142,6 +164,21 @@
       });
 
       // Botões da interface
+      if (this.dom.audioHintBadge) {
+        this.dom.audioHintBadge.addEventListener('click', () => this.enableAudio());
+      }
+      if (this.dom.btnAudioHud) {
+        this.dom.btnAudioHud.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.toggleAudio();
+        });
+      }
+      if (this.dom.btnToggleAudio) {
+        this.dom.btnToggleAudio.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.toggleAudio();
+        });
+      }
       if (this.dom.btnFullscreen) {
         this.dom.btnFullscreen.addEventListener('click', () => this.toggleFullscreen());
       }
@@ -157,6 +194,156 @@
       if (this.dom.btnForceSync) {
         this.dom.btnForceSync.addEventListener('click', () => this.fetchSync(true));
       }
+    }
+
+    enableAudio() {
+      if (!this.isAudioEnabled) {
+        this.isAudioEnabled = true;
+        localStorage.setItem('digitalsign_web_audio', 'true');
+        this.applyAudioState();
+      } else {
+        if (this.dom.audioHintBadge) {
+          this.dom.audioHintBadge.classList.add('hidden');
+        }
+      }
+    }
+
+    toggleAudio() {
+      this.isAudioEnabled = !this.isAudioEnabled;
+      localStorage.setItem('digitalsign_web_audio', this.isAudioEnabled ? 'true' : 'false');
+      this.applyAudioState();
+    }
+
+    applyAudioState() {
+      if (this.dom.audioHintBadge) {
+        if (this.isAudioEnabled) {
+          this.dom.audioHintBadge.classList.add('hidden');
+        } else {
+          this.dom.audioHintBadge.classList.remove('hidden');
+        }
+      }
+
+      if (this.dom.btnAudioHud) {
+        this.dom.btnAudioHud.textContent = this.isAudioEnabled ? '🔊 Som Ativo' : '🔇 Mudo';
+      }
+      if (this.dom.audioIcon) {
+        this.dom.audioIcon.textContent = this.isAudioEnabled ? '🔊' : '🔇';
+      }
+      if (this.dom.audioText) {
+        this.dom.audioText.textContent = this.isAudioEnabled ? 'Som Ativo' : 'Sem Som';
+      }
+
+      // Aplica nos elementos de vídeo
+      if (this.dom.videoA) this.dom.videoA.muted = !this.isAudioEnabled;
+      if (this.dom.videoB) this.dom.videoB.muted = !this.isAudioEnabled;
+
+      // Aplica no player do YouTube
+      if (this.ytPlayer) {
+        try {
+          if (this.isAudioEnabled) {
+            if (typeof this.ytPlayer.unMute === 'function') this.ytPlayer.unMute();
+            if (typeof this.ytPlayer.setVolume === 'function') this.ytPlayer.setVolume(100);
+            if (typeof this.ytPlayer.playVideo === 'function') this.ytPlayer.playVideo();
+          } else {
+            if (typeof this.ytPlayer.mute === 'function') this.ytPlayer.mute();
+          }
+        } catch (e) {}
+      }
+    }
+
+    setupYtPlayer(videoId) {
+      const self = this;
+      if (!window.YT || !window.YT.Player) {
+        this.pendingYouTubeId = videoId;
+        return;
+      }
+
+      if (this.ytPlayer && typeof this.ytPlayer.loadVideoById === 'function') {
+        try {
+          this.ytPlayer.loadVideoById({
+            videoId: videoId,
+            startSeconds: 0
+          });
+          this.ytPlayer.playVideo();
+          if (this.isAudioEnabled) {
+            this.ytPlayer.unMute();
+            this.ytPlayer.setVolume(100);
+          } else {
+            this.ytPlayer.mute();
+          }
+        } catch (e) {
+          console.warn('[WebPlayer] Erro ao trocar vídeo do YouTube:', e);
+        }
+        return;
+      }
+
+      try {
+        this.ytPlayer = new YT.Player('youtubePlayer', {
+          height: '100%',
+          width: '100%',
+          videoId: videoId,
+          playerVars: {
+            autoplay: 1,
+            controls: 0,
+            disablekb: 1,
+            enablejsapi: 1,
+            fs: 0,
+            iv_load_policy: 3,
+            loop: 1,
+            playlist: videoId,
+            modestbranding: 1,
+            rel: 0,
+            mute: 1, // Inicia em mudo para garantir autoplay 100% sem bloqueio do navegador
+            origin: window.location.origin
+          },
+          events: {
+            onReady: function (event) {
+              event.target.playVideo();
+              if (self.isAudioEnabled) {
+                event.target.unMute();
+                event.target.setVolume(100);
+              } else {
+                event.target.mute();
+              }
+            },
+            onStateChange: function (event) {
+              if (event.data === YT.PlayerState.PAUSED) {
+                // Se pausar por restrição do navegador, força play imediato
+                try { event.target.playVideo(); } catch (e) {}
+              } else if (event.data === YT.PlayerState.ENDED) {
+                self.onMediaEnded();
+              }
+            },
+            onError: function (event) {
+              console.warn('[WebPlayer] YouTube Player error code:', event.data);
+              setTimeout(function () { self.onMediaEnded(); }, 1500);
+            }
+          }
+        });
+      } catch (err) {
+        console.error('[WebPlayer] Falha ao instanciar YT.Player:', err);
+      }
+    }
+
+    playYouTube(item) {
+      const videoId = this.extractYouTubeId(item.downloadUrl) || this.extractYouTubeId(item.filename);
+
+      // Ocultar camadas de vídeo local e imagem
+      this.dom.videoA.classList.remove('active');
+      this.dom.videoB.classList.remove('active');
+      this.dom.imgA.classList.remove('active');
+      this.dom.imgB.classList.remove('active');
+      this.dom.videoA.pause();
+      this.dom.videoB.pause();
+
+      if (!videoId) {
+        console.warn('[WebPlayer] ID do vídeo do YouTube não identificado:', item);
+        setTimeout(() => this.onMediaEnded(), 2000);
+        return;
+      }
+
+      this.dom.youtubeContainer.classList.add('active');
+      this.setupYtPlayer(videoId);
     }
 
     updateIdleMeta() {
@@ -448,39 +635,20 @@
       this.startMediaTicker(item);
     }
 
-    playYouTube(item) {
-      const videoId = this.extractYouTubeId(item.downloadUrl) || this.extractYouTubeId(item.filename);
-
-      // Ocultar camadas de vídeo local e imagem
-      this.dom.videoA.classList.remove('active');
-      this.dom.videoB.classList.remove('active');
-      this.dom.imgA.classList.remove('active');
-      this.dom.imgB.classList.remove('active');
-      this.dom.videoA.pause();
-      this.dom.videoB.pause();
-
-      if (!videoId) {
-        console.warn('[WebPlayer] ID do vídeo do YouTube não identificado:', item);
-        setTimeout(() => this.onMediaEnded(), 2000);
-        return;
-      }
-
-      // Embed limpo do YouTube em tela cheia com autoplay e mudo
-      const embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&controls=0&loop=1&playlist=${videoId}&enablejsapi=1&rel=0&iv_load_policy=3&modestbranding=1`;
-      this.dom.youtubeLayer.src = embedUrl;
-      this.dom.youtubeLayer.classList.add('active');
-    }
-
     playVideo(item) {
       const video = this.activeVideo;
       const mediaUrl = item.downloadUrl.startsWith('http') ? item.downloadUrl : (this.serverBaseUrl + item.downloadUrl);
 
-      // Ocultar imagens
+      // Ocultar imagens e YouTube
       this.dom.imgA.classList.remove('active');
       this.dom.imgB.classList.remove('active');
+      if (this.dom.youtubeContainer) this.dom.youtubeContainer.classList.remove('active');
+      if (this.ytPlayer && typeof this.ytPlayer.pauseVideo === 'function') {
+        try { this.ytPlayer.pauseVideo(); } catch (e) {}
+      }
 
       video.src = mediaUrl;
-      video.muted = true; // Necessário para Autoplay em navegadores modernos
+      video.muted = !this.isAudioEnabled;
       video.load();
 
       video.play().then(() => {
@@ -497,9 +665,13 @@
       const img = this.activeImg;
       const mediaUrl = item.downloadUrl.startsWith('http') ? item.downloadUrl : (this.serverBaseUrl + item.downloadUrl);
 
-      // Ocultar vídeos
+      // Ocultar vídeos e YouTube
       this.dom.videoA.classList.remove('active');
       this.dom.videoB.classList.remove('active');
+      if (this.dom.youtubeContainer) this.dom.youtubeContainer.classList.remove('active');
+      if (this.ytPlayer && typeof this.ytPlayer.pauseVideo === 'function') {
+        try { this.ytPlayer.pauseVideo(); } catch (e) {}
+      }
       this.dom.videoA.pause();
       this.dom.videoB.pause();
 
@@ -530,10 +702,12 @@
     onMediaEnded() {
       clearInterval(this.timerTicker);
 
-      // Limpar camada do YouTube se ativa
-      if (this.dom.youtubeLayer) {
-        this.dom.youtubeLayer.classList.remove('active');
-        this.dom.youtubeLayer.src = 'about:blank';
+      // Ocultar e pausar YouTube se ativo
+      if (this.dom.youtubeContainer) {
+        this.dom.youtubeContainer.classList.remove('active');
+      }
+      if (this.ytPlayer && typeof this.ytPlayer.pauseVideo === 'function') {
+        try { this.ytPlayer.pauseVideo(); } catch (e) {}
       }
 
       // Log Proof-of-Play
@@ -577,9 +751,11 @@
       this.dom.imgB.classList.remove('active');
       this.dom.videoA.classList.remove('active');
       this.dom.videoB.classList.remove('active');
-      if (this.dom.youtubeLayer) {
-        this.dom.youtubeLayer.classList.remove('active');
-        this.dom.youtubeLayer.src = 'about:blank';
+      if (this.dom.youtubeContainer) {
+        this.dom.youtubeContainer.classList.remove('active');
+      }
+      if (this.ytPlayer && typeof this.ytPlayer.pauseVideo === 'function') {
+        try { this.ytPlayer.pauseVideo(); } catch (e) {}
       }
       this.dom.videoA.pause();
       this.dom.videoB.pause();
@@ -631,6 +807,18 @@
       this.fetchSync(true);
     }
   }
+
+  // Handler oficial da YouTube IFrame API
+  window.onYouTubeIframeAPIReady = function () {
+    if (window.playerApp) {
+      window.playerApp.isYtReady = true;
+      if (window.playerApp.pendingYouTubeId) {
+        const id = window.playerApp.pendingYouTubeId;
+        window.playerApp.pendingYouTubeId = null;
+        window.playerApp.setupYtPlayer(id);
+      }
+    }
+  };
 
   // Inicializa quando o DOM estiver pronto
   window.addEventListener('DOMContentLoaded', () => {
