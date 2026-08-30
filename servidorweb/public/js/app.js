@@ -409,7 +409,7 @@ const App = {
 
     document.getElementById('btnSetDefaultPlaylist').onclick = () => this.setDefaultPlaylist(plId);
     document.getElementById('btnDeletePlaylist').onclick = () => this.deletePlaylist(plId);
-    document.getElementById('btnAddItemToPlaylistBtn').onclick = () => ModalManager.open('modalAddItemToPlaylist');
+    document.getElementById('btnAddItemToPlaylistBtn').onclick = () => this.openAddItemModal();
 
     const tbody = document.getElementById('playlistItemsTableBody');
     if (!pl.items || pl.items.length === 0) {
@@ -422,7 +422,7 @@ const App = {
         <td><strong>#${it.order}</strong></td>
         <td><strong>${it.media_name}</strong></td>
         <td><span class="badge badge-type">${it.type}</span></td>
-        <td>${it.duration_sec}s</td>
+        <td>${it.duration_sec > 0 ? it.duration_sec + 's' : 'Total'}</td>
         <td>${it.transition}</td>
         <td>
           <button class="btn-sm btn-outline" onclick="App.movePlaylistItem(${it.item_id}, 'up')">⬆️</button>
@@ -431,6 +431,38 @@ const App = {
         </td>
       </tr>
     `).join('');
+  },
+
+  openAddItemModal() {
+    const select = document.getElementById('selectMediaForPl');
+    if (select && select.options.length > 0) {
+      this.onMediaSelectChange(select);
+    }
+    ModalManager.open('modalAddItemToPlaylist');
+  },
+
+  onMediaSelectChange(selectEl) {
+    const mediaId = selectEl.value;
+    const m = this.allMedias.find(x => x.ID == mediaId);
+    const durationInput = document.getElementById('itemDuration');
+    const groupDuration = document.getElementById('groupItemDuration');
+    const durationText = document.getElementById('mediaDurationText');
+
+    if (!m) return;
+
+    if (m.TIPO_MIDIA === 'VIDEO') {
+      groupDuration.style.display = 'none';
+      durationInput.value = m.DURACAO_PADRAO_SEG || 10;
+      durationText.textContent = `Vídeo: ${m.NOME_EXIBICAO} (duração total: ${m.DURACAO_PADRAO_SEG}s - reproduzirá o vídeo completo sem cortes)`;
+    } else if (m.TIPO_MIDIA === 'STREAM' || m.URL_DOWNLOAD.includes('youtube')) {
+      groupDuration.style.display = 'none';
+      durationInput.value = 0;
+      durationText.textContent = `YouTube / Stream: ${m.NOME_EXIBICAO} (reprodução contínua)`;
+    } else {
+      groupDuration.style.display = 'block';
+      durationInput.value = 8;
+      durationText.textContent = `Imagem: ${m.NOME_EXIBICAO} (defina o tempo de exibição do slide)`;
+    }
   },
 
   async saveNewPlaylist(e) {
@@ -478,7 +510,15 @@ const App = {
   async savePlaylistItem(e) {
     e.preventDefault();
     const mediaId = document.getElementById('selectMediaForPl').value;
-    const duration = parseInt(document.getElementById('itemDuration').value) || 10;
+    const m = this.allMedias.find(x => x.ID == mediaId);
+    let duration = 0;
+    
+    if (m && m.TIPO_MIDIA === 'IMAGE') {
+      duration = parseInt(document.getElementById('itemDuration').value) || 8;
+    } else if (m) {
+      duration = m.DURACAO_PADRAO_SEG || 0;
+    }
+
     const transition = document.getElementById('itemTransition').value;
 
     const res = await fetch(`/api/v1/playlists/${this.selectedPlaylistId}/items`, {
@@ -488,7 +528,7 @@ const App = {
     });
 
     if (res.ok) {
-      this.showToast('Mídia adicionada à playlist!');
+      this.showToast('Mídia adicionada com a duração total!');
       ModalManager.close('modalAddItemToPlaylist');
       this.loadPlaylistDetails(this.selectedPlaylistId);
       this.loadPlaylists();
@@ -518,18 +558,20 @@ const App = {
   // ========================================================
   // AGENDAMENTOS
   // ========================================================
+  allSchedules: [],
+
   async loadSchedules() {
     const res = await fetch('/api/v1/schedules');
     if (!res.ok) return;
-    const schedules = await res.json();
+    this.allSchedules = await res.json();
 
     const tbody = document.getElementById('schedulesTableBody');
-    if (schedules.length === 0) {
+    if (this.allSchedules.length === 0) {
       tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">Nenhum agendamento ativo. Crie um novo agendamento.</td></tr>';
       return;
     }
 
-    tbody.innerHTML = schedules.map(s => `
+    tbody.innerHTML = this.allSchedules.map(s => `
       <tr>
         <td><strong>${s.event_name}</strong></td>
         <td><span class="badge badge-type">📑 ${s.playlist_name}</span></td>
@@ -539,14 +581,61 @@ const App = {
         <td>${s.days_of_week}</td>
         <td><span class="badge badge-default">Prio: ${s.priority}</span></td>
         <td>
-          <button class="btn-sm btn-danger-outline" onclick="App.deleteSchedule(${s.ID})">🗑️ Excluir</button>
+          <button class="btn-sm btn-outline" onclick="App.editSchedule(${s.ID})" title="Editar Agendamento">✏️ Editar</button>
+          <button class="btn-sm btn-danger-outline" onclick="App.deleteSchedule(${s.ID})" title="Excluir Agendamento">🗑️ Excluir</button>
         </td>
       </tr>
     `).join('');
   },
 
+  openNewScheduleModal() {
+    document.getElementById('formNewSchedule').reset();
+    document.getElementById('schedId').value = '';
+    document.getElementById('modalScheduleTitle').textContent = '📅 Novo Agendamento de Grade';
+    document.getElementById('btnSubmitSchedule').textContent = 'Criar Agendamento';
+
+    const now = new Date();
+    const nextYear = new Date();
+    nextYear.setFullYear(now.getFullYear() + 1);
+
+    document.getElementById('schedStartDate').value = now.toISOString().split('T')[0];
+    document.getElementById('schedEndDate').value = nextYear.toISOString().split('T')[0];
+    document.getElementById('schedStartTime').value = '00:00:00';
+    document.getElementById('schedEndTime').value = '23:59:59';
+    document.getElementById('schedPriority').value = '10';
+
+    document.querySelectorAll('input[name="schedDays"]').forEach(cb => cb.checked = true);
+    ModalManager.open('modalNewSchedule');
+  },
+
+  editSchedule(id) {
+    const s = this.allSchedules.find(x => x.ID == id);
+    if (!s) return;
+
+    document.getElementById('schedId').value = s.ID;
+    document.getElementById('modalScheduleTitle').textContent = `✏️ Editar Agendamento: ${s.event_name}`;
+    document.getElementById('btnSubmitSchedule').textContent = 'Salvar Alterações';
+
+    document.getElementById('schedEventName').value = s.event_name;
+    document.getElementById('schedPlaylistSelect').value = s.PLAYLIST_ID;
+    document.getElementById('schedScreenSelect').value = s.TELA_ID || '';
+    document.getElementById('schedStartDate').value = s.start_date;
+    document.getElementById('schedEndDate').value = s.end_date;
+    document.getElementById('schedStartTime').value = s.start_time;
+    document.getElementById('schedEndTime').value = s.end_time;
+    document.getElementById('schedPriority').value = s.priority;
+
+    const days = (s.days_of_week || '').split(',').map(x => x.trim());
+    document.querySelectorAll('input[name="schedDays"]').forEach(cb => {
+      cb.checked = days.includes(cb.value);
+    });
+
+    ModalManager.open('modalNewSchedule');
+  },
+
   async saveSchedule(e) {
     e.preventDefault();
+    const id = document.getElementById('schedId').value;
     const event_name = document.getElementById('schedEventName').value;
     const playlist_id = document.getElementById('schedPlaylistSelect').value;
     const screen_id = document.getElementById('schedScreenSelect').value || null;
@@ -559,24 +648,30 @@ const App = {
     const days = [];
     document.querySelectorAll('input[name="schedDays"]:checked').forEach(cb => days.push(cb.value));
 
+    const payload = {
+      event_name,
+      playlist_id,
+      screen_id,
+      start_date,
+      end_date,
+      start_time,
+      end_time,
+      days_of_week: days.join(','),
+      priority
+    };
+
+    if (id) {
+      payload.id = parseInt(id);
+    }
+
     const res = await fetch('/api/v1/schedules', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        event_name,
-        playlist_id,
-        screen_id,
-        start_date,
-        end_date,
-        start_time,
-        end_time,
-        days_of_week: days.join(','),
-        priority
-      })
+      body: JSON.stringify(payload)
     });
 
     if (res.ok) {
-      this.showToast('Agendamento criado com sucesso!');
+      this.showToast(id ? 'Agendamento atualizado com sucesso!' : 'Agendamento criado com sucesso!');
       ModalManager.close('modalNewSchedule');
       document.getElementById('formNewSchedule').reset();
       this.loadSchedules();

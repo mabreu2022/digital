@@ -551,12 +551,23 @@ class SignageWebHandler(http.server.BaseHTTPRequestHandler):
 
     def api_add_playlist_item(self, pl_id, body):
         media_id = body.get('media_id')
-        duration = body.get('duration_sec', 10)
         transition = body.get('transition', 'CUT')
 
         conn = get_db()
         with conn:
             cur = conn.cursor()
+            cur.execute("SELECT TIPO_MIDIA, DURACAO_PADRAO_SEG FROM MIDIAS WHERE ID = ?", (media_id,))
+            m_row = cur.fetchone()
+            if m_row:
+                m_tipo, m_dur = m_row[0], m_row[1]
+                # Se duration_sec for fornecido explicitamente e for maior que 0 usa, senão usa duração total do vídeo
+                if 'duration_sec' in body and body['duration_sec'] is not None and str(body['duration_sec']).strip() != '':
+                    duration = int(body['duration_sec'])
+                else:
+                    duration = m_dur if m_dur > 0 else (0 if m_tipo == 'STREAM' else 10)
+            else:
+                duration = int(body.get('duration_sec', 10))
+
             cur.execute("SELECT COALESCE(MAX(ORDEM), 0) + 1 FROM PLAYLIST_ITENS WHERE PLAYLIST_ID = ?", (pl_id,))
             next_ord = cur.fetchone()[0]
             cur.execute("""
@@ -564,7 +575,7 @@ class SignageWebHandler(http.server.BaseHTTPRequestHandler):
                 VALUES (?, ?, ?, ?, ?)
             """, (pl_id, media_id, next_ord, duration, transition))
         conn.close()
-        self.send_json({"status": "ok", "message": "Item adicionado à playlist"})
+        self.send_json({"status": "ok", "message": "Item adicionado à playlist", "duration_sec": duration})
 
     def api_remove_playlist_item(self, item_id):
         conn = get_db()
@@ -617,6 +628,7 @@ class SignageWebHandler(http.server.BaseHTTPRequestHandler):
         self.send_json(rows)
 
     def api_create_schedule(self, body):
+        sch_id = body.get('id')
         event_name = body.get('event_name', 'Campanha').strip()
         pl_id = body.get('playlist_id')
         screen_id = body.get('screen_id') or None
@@ -630,11 +642,27 @@ class SignageWebHandler(http.server.BaseHTTPRequestHandler):
         conn = get_db()
         with conn:
             cur = conn.cursor()
-            cur.execute("""
-                INSERT INTO AGENDAMENTOS (NOME_EVENTO, PLAYLIST_ID, TELA_ID, DATA_INICIO, DATA_FIM, HORA_INICIO, HORA_FIM, DIAS_SEMANA, PRIORIDADE, ATIVO)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
-            """, (event_name, pl_id, screen_id, start_date, end_date, start_time, end_time, days, priority))
-            new_id = cur.lastrowid
+            if sch_id:
+                cur.execute("""
+                    UPDATE AGENDAMENTOS SET
+                        NOME_EVENTO = ?,
+                        PLAYLIST_ID = ?,
+                        TELA_ID = ?,
+                        DATA_INICIO = ?,
+                        DATA_FIM = ?,
+                        HORA_INICIO = ?,
+                        HORA_FIM = ?,
+                        DIAS_SEMANA = ?,
+                        PRIORIDADE = ?
+                    WHERE ID = ?
+                """, (event_name, pl_id, screen_id, start_date, end_date, start_time, end_time, days, priority, sch_id))
+                new_id = sch_id
+            else:
+                cur.execute("""
+                    INSERT INTO AGENDAMENTOS (NOME_EVENTO, PLAYLIST_ID, TELA_ID, DATA_INICIO, DATA_FIM, HORA_INICIO, HORA_FIM, DIAS_SEMANA, PRIORIDADE, ATIVO)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
+                """, (event_name, pl_id, screen_id, start_date, end_date, start_time, end_time, days, priority))
+                new_id = cur.lastrowid
         conn.close()
         self.send_json({"status": "ok", "id": new_id})
 
