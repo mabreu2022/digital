@@ -80,13 +80,15 @@
       this.init();
     }
 
-    init() {
+    async init() {
       this.setupEventListeners();
       this.startClock();
       this.updateIdleMeta();
       this.applyAudioState();
-      this.registerPlayer();
-      this.fetchSync();
+      try {
+        await this.registerPlayer();
+      } catch (e) {}
+      await this.fetchSync();
 
       // Sincronização periódica de grade e heartbeat
       setInterval(() => this.fetchSync(), CONFIG.syncIntervalMs);

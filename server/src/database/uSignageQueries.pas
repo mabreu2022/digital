@@ -153,10 +153,15 @@ begin
 
     if QryPlayer.EOF then
     begin
-      RootObj.Add('status', 'error');
-      RootObj.Add('message', 'Player UUID não cadastrado');
-      Result := RootObj.AsJSON;
-      Exit;
+      // Auto-registro imediato se não encontrado por UUID/Nome/ID
+      QryPlayer.Close;
+      QryPlayer.SQL.Text := 'INSERT INTO TELAS (UUID, NOME, IP_LOCAL, IP_PUBLICO, STATUS, ULTIMO_HEARTBEAT) ' +
+                            'VALUES (:UUID, :NOME, ''127.0.0.1'', ''127.0.0.1'', ''ONLINE'', CURRENT_TIMESTAMP) ' +
+                            'RETURNING ID, UUID, NOME, STATUS, VOLUME_AUDIO';
+      QryPlayer.ParamByName('UUID').AsString := APlayerUUID;
+      QryPlayer.ParamByName('NOME').AsString := 'Web Player ' + Copy(APlayerUUID, 1, 8);
+      QryPlayer.Open;
+      ATrans.CommitRetaining;
     end;
 
     PlayerID := QryPlayer.FieldByName('ID').AsLargeInt;
