@@ -198,6 +198,7 @@ var
   Conn: TIBConnection;
   Trans: TSQLTransaction;
   Parser: TJSONParser;
+  Data: TJSONData;
   BodyObj, RespObj: TJSONObject;
   UUID, Nome, IPLocal, IPPub, Mac, OSName, Versao: string;
   WidthPx, HeightPx: Integer;
@@ -209,15 +210,27 @@ begin
     Exit;
   end;
 
-  Parser := TJSONParser.Create(ARequest.Content, True);
   try
-    BodyObj := TJSONObject(Parser.Parse);
-    if BodyObj = nil then
+    Data := nil;
+    Parser := TJSONParser.Create(ARequest.Content, True);
+    try
+      try
+        Data := Parser.Parse;
+      except
+        Data := nil;
+      end;
+    finally
+      Parser.Free;
+    end;
+
+    if (Data = nil) or (not (Data is TJSONObject)) then
     begin
+      if Assigned(Data) then Data.Free;
       SendErrorResponse(AResponse, 'JSON inválido');
       Exit;
     end;
 
+    BodyObj := TJSONObject(Data);
     try
       UUID := BodyObj.Get('uuid', '');
       Nome := BodyObj.Get('name', 'Player Sem Nome');
@@ -228,44 +241,45 @@ begin
       Versao := BodyObj.Get('version', '1.0.0');
       WidthPx := BodyObj.Get('width', 1920);
       HeightPx := BodyObj.Get('height', 1080);
-
-      if UUID = '' then
-      begin
-        SendErrorResponse(AResponse, 'UUID é obrigatório');
-        Exit;
-      end;
-
-      Conn := FDbManager.CreateConnection(Trans);
-      try
-        Conn.Connected := True;
-        Success := TSignageDatabaseService.RegisterPlayer(
-          UUID, Nome, IPLocal, IPPub, Mac, OSName, Versao, WidthPx, HeightPx, Conn, Trans);
-        Conn.Connected := False;
-      finally
-        Trans.Free;
-        Conn.Free;
-      end;
-
-      if Success then
-      begin
-        RespObj := TJSONObject.Create;
-        try
-          RespObj.Add('status', 'ok');
-          RespObj.Add('message', 'Player registrado/atualizado com sucesso');
-          RespObj.Add('uuid', UUID);
-          SendJsonResponse(AResponse, RespObj.AsJSON, 200);
-        finally
-          RespObj.Free;
-        end;
-      end
-      else
-        SendErrorResponse(AResponse, 'Falha ao registrar player no Firebird', 500);
-
     finally
       BodyObj.Free;
     end;
-  finally
-    Parser.Free;
+
+    if UUID = '' then
+    begin
+      SendErrorResponse(AResponse, 'UUID é obrigatório');
+      Exit;
+    end;
+
+    Conn := FDbManager.CreateConnection(Trans);
+    try
+      Conn.Connected := True;
+      Success := TSignageDatabaseService.RegisterPlayer(
+        UUID, Nome, IPLocal, IPPub, Mac, OSName, Versao, WidthPx, HeightPx, Conn, Trans);
+      Conn.Connected := False;
+    finally
+      Trans.Free;
+      Conn.Free;
+    end;
+
+    if Success then
+    begin
+      RespObj := TJSONObject.Create;
+      try
+        RespObj.Add('status', 'ok');
+        RespObj.Add('message', 'Player registrado/atualizado com sucesso');
+        RespObj.Add('uuid', UUID);
+        SendJsonResponse(AResponse, RespObj.AsJSON, 200);
+      finally
+        RespObj.Free;
+      end;
+    end
+    else
+      SendErrorResponse(AResponse, 'Falha ao registrar player no Firebird', 500);
+
+  except
+    on E: Exception do
+      SendErrorResponse(AResponse, 'Erro interno ao registrar: ' + E.Message, 500);
   end;
 end;
 
@@ -462,12 +476,8 @@ begin
   AResponse.Code := 200;
 
   FileStream := TFileStream.Create(FoundPath, fmOpenRead or fmShareDenyNone);
-  try
-    AResponse.ContentStream := FileStream;
-    AResponse.SendContent;
-  finally
-    FileStream.Free;
-  end;
+  AResponse.ContentStream := FileStream;
+  AResponse.SendContent;
 end;
 
 procedure TPlayerApiController.HandleWebPlayer(const ASubPath: string; ARequest: TRequest; AResponse: TResponse);
@@ -523,12 +533,8 @@ begin
     AResponse.Code := 200;
 
     FileStream := TFileStream.Create(FoundPath, fmOpenRead or fmShareDenyNone);
-    try
-      AResponse.ContentStream := FileStream;
-      AResponse.SendContent;
-    finally
-      FileStream.Free;
-    end;
+    AResponse.ContentStream := FileStream;
+    AResponse.SendContent;
     Exit;
   end;
 
