@@ -582,10 +582,15 @@
         if (rule.start_date && dateStr < rule.start_date) return false;
         if (rule.end_date && dateStr > rule.end_date) return false;
 
-        // Validação de Dia da Semana (Máscara 7 caracteres: Dom=0, Seg=1... Sab=6)
-        if (rule.days_of_week && rule.days_of_week.length === 7) {
-          const dayIdx = now.getDay();
-          if (rule.days_of_week[dayIdx] !== '1') return false;
+        // Validação de Dia da Semana (1=Dom, 2=Seg, 3=Ter, 4=Qua, 5=Qui, 6=Sex, 7=Sab)
+        if (rule.days_of_week) {
+          const dbDayNum = (now.getDay() + 1).toString();
+          if (rule.days_of_week.includes(',')) {
+            const list = rule.days_of_week.split(',').map(x => x.trim());
+            if (!list.includes(dbDayNum)) return false;
+          } else if (rule.days_of_week.length === 7) {
+            if (rule.days_of_week[now.getDay()] !== '1') return false;
+          }
         }
 
         // Validação de Janela de Horário Local (HH:MM:SS)
@@ -963,8 +968,16 @@
     }
   };
 
-  // Inicializa quando o DOM estiver pronto
-  window.addEventListener('DOMContentLoaded', () => {
-    window.playerApp = new WebSignagePlayer();
-  });
+  // Inicialização Confiável
+  function initPlayer() {
+    if (!window.playerApp) {
+      window.playerApp = new WebSignagePlayer();
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    window.addEventListener('DOMContentLoaded', initPlayer);
+  } else {
+    initPlayer();
+  }
 })();
