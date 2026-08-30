@@ -289,6 +289,7 @@
             enablejsapi: 1,
             fs: 0,
             iv_load_policy: 3,
+            cc_load_policy: 0, // Desabilita exibição de legendas
             loop: 1,
             playlist: videoId,
             modestbranding: 1,
@@ -299,6 +300,17 @@
           events: {
             onReady: function (event) {
               event.target.playVideo();
+              try {
+                if (typeof event.target.unloadModule === 'function') {
+                  event.target.unloadModule('captions');
+                  event.target.unloadModule('cc');
+                }
+                if (typeof event.target.setOption === 'function') {
+                  event.target.setOption('captions', 'track', {});
+                  event.target.setOption('cc', 'track', {});
+                }
+              } catch (e) {}
+
               if (self.isAudioEnabled) {
                 event.target.unMute();
                 event.target.setVolume(100);
@@ -307,7 +319,19 @@
               }
             },
             onStateChange: function (event) {
-              if (event.data === YT.PlayerState.PAUSED) {
+              if (event.data === YT.PlayerState.PLAYING) {
+                // Força desativação de legendas ao iniciar reprodução
+                try {
+                  if (typeof event.target.unloadModule === 'function') {
+                    event.target.unloadModule('captions');
+                    event.target.unloadModule('cc');
+                  }
+                  if (typeof event.target.setOption === 'function') {
+                    event.target.setOption('captions', 'track', {});
+                    event.target.setOption('cc', 'track', {});
+                  }
+                } catch (e) {}
+              } else if (event.data === YT.PlayerState.PAUSED) {
                 // Se pausar por restrição do navegador, força play imediato
                 try { event.target.playVideo(); } catch (e) {}
               } else if (event.data === YT.PlayerState.ENDED) {
@@ -649,6 +673,14 @@
 
       video.src = mediaUrl;
       video.muted = !this.isAudioEnabled;
+
+      // Desabilitar legendas e faixas de texto
+      if (video.textTracks) {
+        for (let i = 0; i < video.textTracks.length; i++) {
+          video.textTracks[i].mode = 'disabled';
+        }
+      }
+
       video.load();
 
       video.play().then(() => {
