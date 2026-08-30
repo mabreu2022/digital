@@ -342,14 +342,13 @@
     getOrCreateUuid() {
       const urlParams = new URLSearchParams(window.location.search);
       const queryUuid = urlParams.get('uuid');
-      if (queryUuid && queryUuid.length <= 36) {
+      if (queryUuid && queryUuid !== 'undefined' && queryUuid !== 'null' && queryUuid.length <= 36) {
         localStorage.setItem(CONFIG.storageKeyUuid, queryUuid);
         return queryUuid;
       }
 
       let stored = localStorage.getItem(CONFIG.storageKeyUuid);
-      // Se for nulo ou diferente de 36 caracteres, regenera no padrão UUID v4 de 36 caracteres
-      if (!stored || stored.length !== 36) {
+      if (!stored || stored === 'undefined' || stored === 'null' || stored.length !== 36) {
         stored = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
           const r = Math.random() * 16 | 0;
           const v = c === 'x' ? r : (r & 0x3 | 0x8);
@@ -363,11 +362,22 @@
     getStoredName() {
       const urlParams = new URLSearchParams(window.location.search);
       const queryName = urlParams.get('name');
-      if (queryName) {
-        localStorage.setItem(CONFIG.storageKeyName, queryName);
-        return queryName;
+      if (queryName && queryName !== 'undefined' && queryName !== 'null' && queryName.trim() !== '') {
+        localStorage.setItem(CONFIG.storageKeyName, queryName.trim());
+        return queryName.trim();
       }
-      return localStorage.getItem(CONFIG.storageKeyName) || ('Web Player ' + window.location.hostname);
+
+      const isAndroid = /Android/i.test(navigator.userAgent);
+      const isLinuxPc = /Linux/i.test(navigator.platform || navigator.userAgent) && !isAndroid;
+
+      const stored = localStorage.getItem(CONFIG.storageKeyName);
+      if (stored && stored !== 'undefined' && stored !== 'null' && stored.trim() !== '' && !stored.startsWith('Web Player')) {
+        return stored.trim();
+      }
+
+      const defaultName = isAndroid ? 'Android' : (isLinuxPc ? 'pc linux' : ('Web Player ' + (window.location.hostname || '127.0.0.1')));
+      localStorage.setItem(CONFIG.storageKeyName, defaultName);
+      return defaultName;
     }
 
     detectBrowser() {
@@ -576,10 +586,15 @@
         if (rule.start_date && dateStr < rule.start_date) return false;
         if (rule.end_date && dateStr > rule.end_date) return false;
 
-        // Validação de Dia da Semana (Máscara 7 caracteres: Dom=0, Seg=1... Sab=6)
-        if (rule.days_of_week && rule.days_of_week.length === 7) {
-          const dayIdx = now.getDay();
-          if (rule.days_of_week[dayIdx] !== '1') return false;
+        // Validação de Dia da Semana (1=Dom, 2=Seg, 3=Ter, 4=Qua, 5=Qui, 6=Sex, 7=Sab)
+        if (rule.days_of_week) {
+          const dbDayNum = (now.getDay() + 1).toString();
+          if (rule.days_of_week.includes(',')) {
+            const list = rule.days_of_week.split(',').map(x => x.trim());
+            if (!list.includes(dbDayNum)) return false;
+          } else if (rule.days_of_week.length === 7) {
+            if (rule.days_of_week[now.getDay()] !== '1') return false;
+          }
         }
 
         // Validação de Janela de Horário Local (HH:MM:SS)
@@ -957,8 +972,16 @@
     }
   };
 
-  // Inicializa quando o DOM estiver pronto
-  window.addEventListener('DOMContentLoaded', () => {
-    window.playerApp = new WebSignagePlayer();
-  });
+  // Inicialização Confiável
+  function initPlayer() {
+    if (!window.playerApp) {
+      window.playerApp = new WebSignagePlayer();
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    window.addEventListener('DOMContentLoaded', initPlayer);
+  } else {
+    initPlayer();
+  }
 })();
