@@ -678,16 +678,26 @@ class SignageWebHandler(http.server.BaseHTTPRequestHandler):
     # ==========================================
 
     def api_player_register(self, body):
+        client_ip = self.client_address[0]
         uuid_str = body.get('uuid', '').strip()
-        name = body.get('name', 'Web Player').strip()
-        local_ip = body.get('local_ip', self.client_address[0])
-        mac = body.get('mac_address', '')
-        os_name = body.get('os', 'WebBrowser')
-        version = body.get('version', '2.0.0')
+        if not uuid_str or uuid_str.lower() in ('undefined', 'null'):
+            uuid_str = hashlib.md5(f"{client_ip}_{self.headers.get('User-Agent', '')}".encode()).hexdigest()
+            uuid_str = f"{uuid_str[:8]}-{uuid_str[8:12]}-4{uuid_str[13:16]}-8{uuid_str[17:20]}-{uuid_str[20:32]}"
 
-        if not uuid_str:
-            self.send_error_json("UUID obrigatório")
-            return
+        name = body.get('name', '').strip()
+        if not name or name.lower() in ('undefined', 'null', 'player sem nome'):
+            name = f"Web Player {client_ip}"
+
+        local_ip = body.get('local_ip', '').strip()
+        if not local_ip or local_ip.lower() in ('undefined', 'null', 'localhost', '127.0.0.1'):
+            local_ip = client_ip
+
+        mac = body.get('mac_address', '')
+        if mac in ('undefined', 'null'): mac = ''
+        os_name = body.get('os', 'WebBrowser')
+        if not os_name or os_name in ('undefined', 'null'): os_name = 'WebBrowser'
+        version = body.get('version', '2.0.0')
+        if not version or version in ('undefined', 'null'): version = '2.0.0'
 
         conn = get_db()
         with conn:
@@ -703,7 +713,7 @@ class SignageWebHandler(http.server.BaseHTTPRequestHandler):
                 VERSAO_PLAYER = excluded.VERSAO_PLAYER,
                 STATUS = 'ONLINE',
                 ULTIMO_HEARTBEAT = CURRENT_TIMESTAMP
-            """, (uuid_str, name, local_ip, self.client_address[0], mac, os_name, version))
+            """, (uuid_str, name, local_ip, client_ip, mac, os_name, version))
         conn.close()
         self.send_json({"status": "ok", "uuid": uuid_str})
 
@@ -739,6 +749,11 @@ class SignageWebHandler(http.server.BaseHTTPRequestHandler):
         self.send_json({"status": "ok", "records": len(body) if isinstance(body, list) else 0})
 
     def api_player_sync(self, uuid_str, pname_override=""):
+        client_ip = self.client_address[0]
+        if not uuid_str or uuid_str.lower() in ('undefined', 'null'):
+            uuid_str = hashlib.md5(f"{client_ip}_{self.headers.get('User-Agent', '')}".encode()).hexdigest()
+            uuid_str = f"{uuid_str[:8]}-{uuid_str[8:12]}-4{uuid_str[13:16]}-8{uuid_str[17:20]}-{uuid_str[20:32]}"
+
         conn = get_db()
         cur = conn.cursor()
 
@@ -747,17 +762,17 @@ class SignageWebHandler(http.server.BaseHTTPRequestHandler):
         row = cur.fetchone()
         if not row:
             # Auto-registro transparente
-            pname = pname_override or f"Web Player {uuid_str[:8]}"
+            pname = pname_override if (pname_override and pname_override.lower() not in ('undefined', 'null')) else f"Web Player {client_ip}"
             cur.execute("""
                 INSERT INTO TELAS (UUID, NOME, IP_LOCAL, IP_PUBLICO, STATUS, ULTIMO_HEARTBEAT)
-                VALUES (?, ?, '127.0.0.1', '127.0.0.1', 'ONLINE', CURRENT_TIMESTAMP)
-            """, (uuid_str, pname))
+                VALUES (?, ?, ?, ?, 'ONLINE', CURRENT_TIMESTAMP)
+            """, (uuid_str, pname, client_ip, client_ip))
             conn.commit()
             cur.execute("SELECT ID, UUID, NOME, STATUS, VOLUME_AUDIO FROM TELAS WHERE UUID = ?", (uuid_str,))
             row = cur.fetchone()
 
         player_id = row['ID']
-        player_name = pname_override or row['NOME']
+        player_name = pname_override if (pname_override and pname_override.lower() not in ('undefined', 'null')) else row['NOME']
         volume = row['VOLUME_AUDIO']
 
         # 2. Busca Playlist Padrão de Fallback

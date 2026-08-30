@@ -164,25 +164,33 @@ const App = {
       return;
     }
 
-    tbody.innerHTML = this.allScreens.map(s => `
+    tbody.innerHTML = this.allScreens.map(s => {
+      const nome = s.NOME && s.NOME !== 'undefined' ? s.NOME : 'Web Player ' + (s.IP_LOCAL || s.IP_PUBLICO || s.ID);
+      const ipLocal = s.IP_LOCAL && s.IP_LOCAL !== 'undefined' ? s.IP_LOCAL : (s.IP_PUBLICO || '-');
+      const ipPub = s.IP_PUBLICO && s.IP_PUBLICO !== 'undefined' ? s.IP_PUBLICO : '-';
+      const os = s.SISTEMA_OPERACIONAL && s.SISTEMA_OPERACIONAL !== 'undefined' ? s.SISTEMA_OPERACIONAL : 'WebBrowser';
+      const ver = s.VERSAO_PLAYER && s.VERSAO_PLAYER !== 'undefined' ? s.VERSAO_PLAYER : '2.0.0';
+
+      return `
       <tr>
         <td>
           <span class="badge ${s.status === 'ONLINE' ? 'badge-online' : 'badge-offline'}">
             ${s.status === 'ONLINE' ? '● ONLINE' : '○ OFFLINE'}
           </span>
         </td>
-        <td><strong>${s.NOME}</strong></td>
-        <td>${s.IP_LOCAL || '-'}</td>
-        <td>${s.IP_PUBLICO || '-'}</td>
-        <td>${s.SISTEMA_OPERACIONAL || 'Desconhecido'}</td>
-        <td>${s.VERSAO_PLAYER || '1.0.0'}</td>
+        <td><strong>${nome}</strong></td>
+        <td>${ipLocal}</td>
+        <td>${ipPub}</td>
+        <td>${os}</td>
+        <td>${ver}</td>
         <td>${s.ULTIMO_HEARTBEAT ? s.ULTIMO_HEARTBEAT.split('.')[0] : '-'}</td>
         <td>
-          <button class="btn btn-sm btn-outline" onclick="App.openScreenPlayer('${encodeURIComponent(s.NOME)}')">Abrir Player</button>
-          <button class="btn btn-sm btn-danger-outline" onclick="App.deleteScreen(${s.ID})">Excluir</button>
+          <button class="btn-sm btn-outline" onclick="App.openScreenPlayer('${encodeURIComponent(nome)}')">Abrir Player</button>
+          <button class="btn-sm btn-danger-outline" onclick="App.deleteScreen(${s.ID})">Excluir</button>
         </td>
       </tr>
-    `).join('');
+    `;
+    }).join('');
 
     miniGrid.innerHTML = this.allScreens.map(s => `
       <div class="screen-mini-card">

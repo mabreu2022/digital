@@ -347,9 +347,9 @@
         return queryUuid;
       }
 
+    getOrCreateUuid() {
       let stored = localStorage.getItem(CONFIG.storageKeyUuid);
-      // Se for nulo ou diferente de 36 caracteres, regenera no padrão UUID v4 de 36 caracteres
-      if (!stored || stored.length !== 36) {
+      if (!stored || stored === 'undefined' || stored === 'null' || stored.length !== 36) {
         stored = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
           const r = Math.random() * 16 | 0;
           const v = c === 'x' ? r : (r & 0x3 | 0x8);
@@ -363,11 +363,17 @@
     getStoredName() {
       const urlParams = new URLSearchParams(window.location.search);
       const queryName = urlParams.get('name');
-      if (queryName) {
-        localStorage.setItem(CONFIG.storageKeyName, queryName);
-        return queryName;
+      if (queryName && queryName !== 'undefined' && queryName !== 'null' && queryName.trim() !== '') {
+        localStorage.setItem(CONFIG.storageKeyName, queryName.trim());
+        return queryName.trim();
       }
-      return localStorage.getItem(CONFIG.storageKeyName) || ('Web Player ' + window.location.hostname);
+      const stored = localStorage.getItem(CONFIG.storageKeyName);
+      if (stored && stored !== 'undefined' && stored !== 'null' && stored.trim() !== '') {
+        return stored.trim();
+      }
+      const defaultName = 'Web Player ' + (window.location.hostname || '127.0.0.1');
+      localStorage.setItem(CONFIG.storageKeyName, defaultName);
+      return defaultName;
     }
 
     detectBrowser() {
