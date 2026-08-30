@@ -342,12 +342,11 @@
     getOrCreateUuid() {
       const urlParams = new URLSearchParams(window.location.search);
       const queryUuid = urlParams.get('uuid');
-      if (queryUuid && queryUuid.length <= 36) {
+      if (queryUuid && queryUuid !== 'undefined' && queryUuid !== 'null' && queryUuid.length <= 36) {
         localStorage.setItem(CONFIG.storageKeyUuid, queryUuid);
         return queryUuid;
       }
 
-    getOrCreateUuid() {
       let stored = localStorage.getItem(CONFIG.storageKeyUuid);
       if (!stored || stored === 'undefined' || stored === 'null' || stored.length !== 36) {
         stored = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
