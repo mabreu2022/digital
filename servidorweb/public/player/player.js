@@ -366,11 +366,16 @@
         localStorage.setItem(CONFIG.storageKeyName, queryName.trim());
         return queryName.trim();
       }
+
+      const isAndroid = /Android/i.test(navigator.userAgent);
+      const isLinuxPc = /Linux/i.test(navigator.platform || navigator.userAgent) && !isAndroid;
+
       const stored = localStorage.getItem(CONFIG.storageKeyName);
-      if (stored && stored !== 'undefined' && stored !== 'null' && stored.trim() !== '') {
+      if (stored && stored !== 'undefined' && stored !== 'null' && stored.trim() !== '' && !stored.startsWith('Web Player')) {
         return stored.trim();
       }
-      const defaultName = 'Web Player ' + (window.location.hostname || '127.0.0.1');
+
+      const defaultName = isAndroid ? 'Android' : (isLinuxPc ? 'pc linux' : ('Web Player ' + (window.location.hostname || '127.0.0.1')));
       localStorage.setItem(CONFIG.storageKeyName, defaultName);
       return defaultName;
     }
