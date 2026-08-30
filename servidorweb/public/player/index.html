@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Digital Signage - Web Player</title>
+  <link rel="stylesheet" href="/web/player.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📺</text></svg>">
+</head>
+<body>
+  <div id="app">
+    <!-- Camada de Vídeo, Imagem e YouTube Stream -->
+    <div class="media-container">
+      <video id="videoLayerA" class="media-layer" playsinline webkit-playsinline x5-playsinline muted autoplay preload="auto"></video>
+      <video id="videoLayerB" class="media-layer" playsinline webkit-playsinline x5-playsinline muted autoplay preload="auto"></video>
+      <img id="imageLayerA" class="media-layer" alt="Digital Signage">
+      <img id="imageLayerB" class="media-layer" alt="Digital Signage">
+      <div id="youtubeContainer" class="media-layer">
+        <iframe id="youtubeIframe" class="youtube-iframe" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen playsinline webkit-playsinline></iframe>
+      </div>
+    </div>
+
+    <!-- Tela de Aguardo / Inicialização -->
+    <div id="idleScreen" class="idle-screen">
+      <div class="idle-card">
+        <div class="idle-logo">📺</div>
+        <h1 class="idle-title">Digital Signage Web Player</h1>
+        <p id="idleStatus" class="idle-status">Conectando ao Servidor CMS...</p>
+        <div class="idle-meta">
+          <span id="idlePlayerName">🖥️ Web Player</span>
+          <span id="idleResolution">📐 1920x1080</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Badge de Dica de Áudio (Some após primeiro clique) -->
+    <div id="audioHintBadge" class="audio-hint-badge" title="Clique em qualquer lugar para ativar o som">
+      <span>🔊</span> Clique na tela para ativar o áudio
+    </div>
+
+    <!-- OSD HUD (On-Screen Display Superior) -->
+    <div id="osdHud" class="osd-hud">
+      <div id="statusDot" class="status-dot"></div>
+      <div id="osdClock" class="clock-display">00:00:00</div>
+      <span id="osdLabel">Digital Signage</span>
+      <button id="btnAudioHud" class="osd-btn" title="Alternar Áudio (A)">🔊 Som</button>
+    </div>
+
+    <!-- Controles Flutuantes (Aparecem somente ao mover o mouse na parte inferior) -->
+    <div id="floatingControls" class="floating-controls">
+      <button id="btnPlayPause" class="control-btn" title="Pausar / Continuar (Espaço)">
+        <span id="playPauseIcon">⏸️</span> <span id="playPauseText">Pausar</span>
+      </button>
+      <button id="btnNextMedia" class="control-btn" title="Próxima Mídia (N)">
+        <span>⏭️</span> Próximo
+      </button>
+      <button id="btnToggleAudio" class="control-btn" title="Alternar Áudio (A)">
+        <span id="audioIcon">🔊</span> <span id="audioText">Áudio</span>
+      </button>
+      <button id="btnFullscreen" class="control-btn" title="Alternar Tela Cheia (F)">
+        <span>⛶</span> Tela Cheia
+      </button>
+      <button id="btnForceSync" class="control-btn" title="Sincronizar Grade (R)">
+        <span>🔄</span> Atualizar
+      </button>
+      <button id="btnOpenSettings" class="control-btn" title="Configurações (S)">
+        <span>⚙️</span> Ajustes
+      </button>
+    </div>
+
+    <!-- Modal de Configurações -->
+    <div id="settingsModal" class="modal-backdrop">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h2 class="modal-title">Configurações da Tela</h2>
+          <button id="btnCloseSettings" class="modal-close">&times;</button>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="selectPlayerProfile">Vincular a uma Tela Cadastrada</label>
+          <select id="selectPlayerProfile" class="form-input">
+            <option value="">-- Carregando telas cadastradas... --</option>
+          </select>
+          <div class="form-info">Escolha se este navegador deve ser "pc linux", "Android" ou outra tela cadastrada.</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="inputPlayerName">Nome de Exibição da Tela</label>
+          <input type="text" id="inputPlayerName" class="form-input" placeholder="Ex: TV Recepção">
+          <div class="form-info">Este nome aparecerá na aba "Telas Players" do Servidor CMS.</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="inputPlayerUuid">Identificador Único (UUID)</label>
+          <input type="text" id="inputPlayerUuid" class="form-input" readonly>
+          <div class="form-info">Gerado automaticamente pelo navegador.</div>
+        </div>
+        <div class="modal-actions">
+          <button id="btnSaveSettings" class="btn-primary">Salvar e Sincronizar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/web/player.js"></script>
+</body>
+</html>

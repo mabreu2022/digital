@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Digital Signage CMS • Painel de Controle</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-icon">📺</div>
+        <div class="brand-text">
+          <h2>Signage CMS</h2>
+          <span class="badge-version">v2.0 Web</span>
+        </div>
+      </div>
+
+      <nav class="nav-menu">
+        <button class="nav-item active" data-tab="dashboard">
+          <span class="nav-icon">📊</span>
+          <span class="nav-label">Dashboard</span>
+        </button>
+        <button class="nav-item" data-tab="telas">
+          <span class="nav-icon">🖥️</span>
+          <span class="nav-label">Telas Players</span>
+          <span class="nav-badge" id="badgeOnlineCount">0</span>
+        </button>
+        <button class="nav-item" data-tab="midias">
+          <span class="nav-icon">📁</span>
+          <span class="nav-label">Catálogo de Mídias</span>
+        </button>
+        <button class="nav-item" data-tab="playlists">
+          <span class="nav-icon">📑</span>
+          <span class="nav-label">Playlists</span>
+        </button>
+        <button class="nav-item" data-tab="agendamentos">
+          <span class="nav-icon">📅</span>
+          <span class="nav-label">Grade / Agendamentos</span>
+        </button>
+        <button class="nav-item" data-tab="logs">
+          <span class="nav-icon">📜</span>
+          <span class="nav-label">Logs & Relatórios</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="server-status-pill">
+          <span class="status-pulse-dot"></span>
+          <span>Servidor Web Ativo</span>
+        </div>
+        <a href="/player" target="_blank" class="btn-player-shortcut">
+          <span>Abrir Web Player ↗</span>
+        </a>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      <!-- Top Navbar -->
+      <header class="topbar">
+        <div class="topbar-title">
+          <h1 id="pageTitle">Dashboard Geral</h1>
+          <p id="pageSubtitle">Visão geral em tempo real de telas, grades e exibições</p>
+        </div>
+        <div class="topbar-actions">
+          <div class="server-clock" id="serverClock">--:--:--</div>
+          <button class="btn-refresh" id="btnGlobalRefresh" title="Atualizar Dados">
+            <span>🔄</span> Atualizar
+          </button>
+        </div>
+      </header>
+
+      <!-- TAB 1: DASHBOARD -->
+      <section class="tab-content active" id="tab-dashboard">
+        <!-- KPI Cards Grid -->
+        <div class="kpi-grid">
+          <div class="kpi-card kpi-screens">
+            <div class="kpi-icon">🖥️</div>
+            <div class="kpi-info">
+              <span class="kpi-title">Telas Online / Total</span>
+              <div class="kpi-value-group">
+                <span class="kpi-value highlight-green" id="kpiOnlineScreens">0</span>
+                <span class="kpi-sub">/ <span id="kpiTotalScreens">0</span></span>
+              </div>
+            </div>
+          </div>
+
+          <div class="kpi-card kpi-playlists">
+            <div class="kpi-icon">📑</div>
+            <div class="kpi-info">
+              <span class="kpi-title">Playlists Ativas</span>
+              <span class="kpi-value" id="kpiActivePlaylists">0</span>
+            </div>
+          </div>
+
+          <div class="kpi-card kpi-medias">
+            <div class="kpi-icon">📁</div>
+            <div class="kpi-info">
+              <span class="kpi-title">Mídias no Catálogo</span>
+              <span class="kpi-value" id="kpiTotalMedias">0</span>
+            </div>
+          </div>
+
+          <div class="kpi-card kpi-storage">
+            <div class="kpi-icon">💾</div>
+            <div class="kpi-info">
+              <span class="kpi-title">Armazenamento</span>
+              <span class="kpi-value"><span id="kpiStorageMb">0</span> <small>MB</small></span>
+            </div>
+          </div>
+
+          <div class="kpi-card kpi-proof">
+            <div class="kpi-icon">🎯</div>
+            <div class="kpi-info">
+              <span class="kpi-title">Exibições Hoje</span>
+              <span class="kpi-value" id="kpiProofToday">0</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Dashboard Widgets -->
+        <div class="dashboard-widgets-grid">
+          <!-- Active Screens Telemetry -->
+          <div class="widget-card">
+            <div class="widget-header">
+              <h3>Monitoramento de Telas Conectadas</h3>
+              <button class="btn-sm btn-outline" onclick="App.switchTab('telas')">Ver Todas</button>
+            </div>
+            <div class="screens-mini-grid" id="dashboardScreensGrid">
+              <!-- Gerado dinamicamente -->
+            </div>
+          </div>
+
+          <!-- Proof-of-play Recent Activity -->
+          <div class="widget-card">
+            <div class="widget-header">
+              <h3>Últimas Exibições Comprovadas (Proof-of-Play)</h3>
+              <button class="btn-sm btn-outline" onclick="App.switchTab('logs')">Ver Histórico</button>
+            </div>
+            <div class="table-container">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Horário</th>
+                    <th>Tela</th>
+                    <th>Mídia</th>
+                    <th>Duração</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody id="dashboardProofLogsBody">
+                  <!-- Gerado dinamicamente -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 2: TELAS PLAYERS -->
+      <section class="tab-content" id="tab-telas">
+        <div class="section-toolbar">
+          <div class="toolbar-search">
+            <input type="text" id="searchTelas" class="form-control" placeholder="Buscar tela por nome, IP ou sistema...">
+          </div>
+          <div class="toolbar-buttons">
+            <button class="btn btn-primary" onclick="App.openWebPlayerDirect()">
+              <span>🌐</span> Abrir Player Neste Navegador
+            </button>
+          </div>
+        </div>
+
+        <div class="table-card">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Status</th>
+                <th>Nome da Tela</th>
+                <th>IP Local</th>
+                <th>IP Público</th>
+                <th>Sistema Operacional</th>
+                <th>Versão</th>
+                <th>Último Heartbeat</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="telasTableBody">
+              <!-- Linhas geradas dinamicamente -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- TAB 3: CATÁLOGO DE MÍDIAS -->
+      <section class="tab-content" id="tab-midias">
+        <div class="section-toolbar">
+          <div class="toolbar-search">
+            <input type="text" id="searchMidias" class="form-control" placeholder="Buscar mídias por nome...">
+          </div>
+          <div class="toolbar-buttons">
+            <button class="btn btn-danger-gradient" onclick="ModalManager.open('modalYouTube')">
+              <span>▶️</span> Adicionar Vídeo YouTube
+            </button>
+            <button class="btn btn-primary" onclick="document.getElementById('fileUploadInput').click()">
+              <span>📤</span> Upload de Mídia (Vídeo / Imagem)
+            </button>
+            <input type="file" id="fileUploadInput" style="display:none;" accept="video/*,image/*" onchange="App.handleFileUpload(this.files)">
+          </div>
+        </div>
+
+        <!-- Drag & Drop Upload Banner -->
+        <div class="dropzone" id="mediaDropzone">
+          <div class="dropzone-icon">☁️</div>
+          <h3>Arraste e solte vídeos MP4 ou imagens aqui</h3>
+          <p>Suporte automático a MP4, MKV, JPG, PNG e detecção de duração instantânea</p>
+        </div>
+
+        <!-- Medias Grid -->
+        <div class="medias-grid" id="mediasGrid">
+          <!-- Cards de mídias gerados dinamicamente -->
+        </div>
+      </section>
+
+      <!-- TAB 4: PLAYLISTS -->
+      <section class="tab-content" id="tab-playlists">
+        <div class="playlists-layout">
+          <!-- Sidebar de Playlists -->
+          <div class="playlists-sidebar-card">
+            <div class="playlists-sidebar-header">
+              <h3>Playlists Cadastradas</h3>
+              <button class="btn btn-sm btn-primary" onclick="ModalManager.open('modalNewPlaylist')">
+                <span>➕</span> Nova
+              </button>
+            </div>
+            <div class="playlists-list" id="playlistsList">
+              <!-- Gerado dinamicamente -->
+            </div>
+          </div>
+
+          <!-- Detalhes e Itens da Playlist Selecionada -->
+          <div class="playlist-editor-card">
+            <div class="playlist-editor-header" id="playlistEditorHeader">
+              <div>
+                <h2 id="selectedPlaylistTitle">Selecione uma Playlist</h2>
+                <p id="selectedPlaylistDesc">Gerencie as mídias, ordem de execução e transições</p>
+              </div>
+              <div class="playlist-editor-actions" id="playlistEditorActions" style="display: none;">
+                <button class="btn btn-outline" id="btnSetDefaultPlaylist">⭐ Definir como Padrão</button>
+                <button class="btn btn-primary" id="btnAddItemToPlaylistBtn">➕ Adicionar Mídia</button>
+                <button class="btn btn-danger-outline" id="btnDeletePlaylist">🗑️ Excluir Playlist</button>
+              </div>
+            </div>
+
+            <div class="table-container">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th width="60">Ordem</th>
+                    <th>Mídia</th>
+                    <th>Tipo</th>
+                    <th>Duração</th>
+                    <th>Transição</th>
+                    <th width="140">Ações</th>
+                  </tr>
+                </thead>
+                <tbody id="playlistItemsTableBody">
+                  <tr>
+                    <td colspan="6" class="text-center text-muted">Selecione uma playlist ao lado para ver os itens.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 5: AGENDAMENTOS -->
+      <section class="tab-content" id="tab-agendamentos">
+        <div class="section-toolbar">
+          <div class="toolbar-search">
+            <input type="text" id="searchAgendamentos" class="form-control" placeholder="Buscar campanhas ou telas...">
+          </div>
+          <div class="toolbar-buttons">
+            <button class="btn btn-primary" onclick="ModalManager.open('modalNewSchedule')">
+              <span>➕</span> Novo Agendamento de Grade
+            </button>
+          </div>
+        </div>
+
+        <div class="table-card">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Nome da Campanha</th>
+                <th>Playlist Vinculada</th>
+                <th>Tela Destino</th>
+                <th>Período de Exibição</th>
+                <th>Janela Horária</th>
+                <th>Dias da Semana</th>
+                <th>Prioridade</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="schedulesTableBody">
+              <!-- Gerado dinamicamente -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- TAB 6: LOGS -->
+      <section class="tab-content" id="tab-logs">
+        <div class="section-toolbar">
+          <div class="toolbar-search">
+            <input type="text" id="searchLogs" class="form-control" placeholder="Filtrar logs por tela ou mídia...">
+          </div>
+          <div class="toolbar-buttons">
+            <button class="btn btn-outline" onclick="App.loadLogs()">
+              <span>🔄</span> Recarregar Histórico
+            </button>
+          </div>
+        </div>
+
+        <div class="table-card">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Data / Hora Início</th>
+                <th>Tela</th>
+                <th>Mídia Exibida</th>
+                <th>Playlist</th>
+                <th>Segundos</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="fullLogsTableBody">
+              <!-- Gerado dinamicamente -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- ================= MODAIS ================= -->
+
+  <!-- Modal Novo YouTube -->
+  <div class="modal-backdrop" id="modalYouTube">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>▶️ Adicionar Vídeo do YouTube</h3>
+        <button class="modal-close" onclick="ModalManager.close('modalYouTube')">&times;</button>
+      </div>
+      <form id="formYouTube" onsubmit="App.saveYouTube(event)">
+        <div class="form-group">
+          <label>URL ou Link do YouTube:</label>
+          <input type="url" id="ytUrl" class="form-control" placeholder="https://www.youtube.com/watch?v=..." required>
+        </div>
+        <div class="form-group">
+          <label>Título de Exibição (Opcional):</label>
+          <input type="text" id="ytTitle" class="form-control" placeholder="Deixe em branco para usar o ID do vídeo">
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" onclick="ModalManager.close('modalYouTube')">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Salvar Vídeo</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Nova Playlist -->
+  <div class="modal-backdrop" id="modalNewPlaylist">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>📑 Criar Nova Playlist</h3>
+        <button class="modal-close" onclick="ModalManager.close('modalNewPlaylist')">&times;</button>
+      </div>
+      <form id="formNewPlaylist" onsubmit="App.saveNewPlaylist(event)">
+        <div class="form-group">
+          <label>Nome da Playlist:</label>
+          <input type="text" id="plName" class="form-control" placeholder="Ex: Programação Manhã" required>
+        </div>
+        <div class="form-group">
+          <label>Descrição:</label>
+          <input type="text" id="plDesc" class="form-control" placeholder="Descrição opcional">
+        </div>
+        <div class="form-group-checkbox">
+          <label>
+            <input type="checkbox" id="plIsDefault">
+            Definir como Playlist de Fallback Padrão
+          </label>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" onclick="ModalManager.close('modalNewPlaylist')">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Criar Playlist</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Adicionar Mídia à Playlist -->
+  <div class="modal-backdrop" id="modalAddItemToPlaylist">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>➕ Adicionar Mídia à Playlist</h3>
+        <button class="modal-close" onclick="ModalManager.close('modalAddItemToPlaylist')">&times;</button>
+      </div>
+      <form id="formAddItem" onsubmit="App.savePlaylistItem(event)">
+        <div class="form-group">
+          <label>Selecione a Mídia:</label>
+          <select id="selectMediaForPl" class="form-control" required></select>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Duração (Segundos):</label>
+            <input type="number" id="itemDuration" class="form-control" value="10" min="1" required>
+          </div>
+          <div class="form-group">
+            <label>Transição:</label>
+            <select id="itemTransition" class="form-control">
+              <option value="CUT">Corte Seco (CUT)</option>
+              <option value="FADE">Fade Suave</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" onclick="ModalManager.close('modalAddItemToPlaylist')">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Adicionar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Novo Agendamento -->
+  <div class="modal-backdrop" id="modalNewSchedule">
+    <div class="modal-card modal-lg">
+      <div class="modal-header">
+        <h3>📅 Novo Agendamento de Grade</h3>
+        <button class="modal-close" onclick="ModalManager.close('modalNewSchedule')">&times;</button>
+      </div>
+      <form id="formNewSchedule" onsubmit="App.saveSchedule(event)">
+        <div class="form-group">
+          <label>Nome da Campanha / Evento:</label>
+          <input type="text" id="schedEventName" class="form-control" placeholder="Ex: Campanha Android Tarde" required>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Playlist a Exibir:</label>
+            <select id="schedPlaylistSelect" class="form-control" required></select>
+          </div>
+          <div class="form-group">
+            <label>Direcionar para a Tela:</label>
+            <select id="schedScreenSelect" class="form-control">
+              <option value="">[TODAS AS TELAS - GLOBAL]</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Data Início:</label>
+            <input type="date" id="schedStartDate" class="form-control" required>
+          </div>
+          <div class="form-group">
+            <label>Data Fim:</label>
+            <input type="date" id="schedEndDate" class="form-control" required>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Hora Início:</label>
+            <input type="time" id="schedStartTime" class="form-control" value="00:00:00" step="1" required>
+          </div>
+          <div class="form-group">
+            <label>Hora Fim:</label>
+            <input type="time" id="schedEndTime" class="form-control" value="23:59:59" step="1" required>
+          </div>
+          <div class="form-group">
+            <label>Prioridade:</label>
+            <input type="number" id="schedPriority" class="form-control" value="10" min="1" max="100" required>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Dias da Semana:</label>
+          <div class="days-checkbox-group">
+            <label><input type="checkbox" name="schedDays" value="1" checked> Dom</label>
+            <label><input type="checkbox" name="schedDays" value="2" checked> Seg</label>
+            <label><input type="checkbox" name="schedDays" value="3" checked> Ter</label>
+            <label><input type="checkbox" name="schedDays" value="4" checked> Qua</label>
+            <label><input type="checkbox" name="schedDays" value="5" checked> Qui</label>
+            <label><input type="checkbox" name="schedDays" value="6" checked> Sex</label>
+            <label><input type="checkbox" name="schedDays" value="7" checked> Sáb</label>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" onclick="ModalManager.close('modalNewSchedule')">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Salvar Agendamento</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Preview de Mídia -->
+  <div class="modal-backdrop" id="modalMediaPreview">
+    <div class="modal-card modal-preview-card">
+      <div class="modal-header">
+        <h3 id="previewTitle">Pré-visualização de Mídia</h3>
+        <button class="modal-close" onclick="ModalManager.close('modalMediaPreview')">&times;</button>
+      </div>
+      <div class="preview-media-container" id="previewContainer"></div>
+    </div>
+  </div>
+
+  <div id="toastNotification" class="toast"></div>
+
+  <script src="js/app.js"></script>
+</body>
+</html>
