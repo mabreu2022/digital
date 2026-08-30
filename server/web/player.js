@@ -138,10 +138,13 @@
         });
       });
 
-      // Clique em qualquer lugar da tela ativa o áudio automaticamente
+      // Clique em qualquer lugar da tela ativa o áudio e força play no Android
       window.addEventListener('click', (e) => {
         if (!e.target.closest('#settingsModal')) {
           this.enableAudio();
+          if (this.activeVideo && this.activeVideo.paused && this.activeItem && this.activeItem.type === 'VIDEO') {
+            this.activeVideo.play().catch(() => {});
+          }
         }
       });
 
@@ -150,7 +153,13 @@
       window.addEventListener('touchstart', () => {
         this.enableAudio();
         this.showHudTemporarily();
-      });
+        if (this.activeVideo && this.activeVideo.paused && this.activeItem && this.activeItem.type === 'VIDEO') {
+          this.activeVideo.play().catch(() => {});
+        }
+        if (this.ytPlayer && typeof this.ytPlayer.playVideo === 'function') {
+          try { this.ytPlayer.playVideo(); } catch (e) {}
+        }
+      }, { passive: true });
       window.addEventListener('dblclick', () => this.toggleFullscreen());
 
       // Teclas de atalho (Espaço = Play/Pause, N = Próximo, F = Tela Cheia, A = Áudio, S/M = Configurações, R = Sincronizar)
@@ -342,12 +351,14 @@
             fs: 0,
             iv_load_policy: 3,
             cc_load_policy: 0, // Desabilita exibição de legendas
+            playsinline: 1, // CRUCIAL para celulares Android, tablets e Smart TVs
             loop: 1,
             playlist: videoId,
             modestbranding: 1,
             rel: 0,
             mute: 1, // Inicia em mudo para garantir autoplay 100% sem bloqueio do navegador
-            origin: window.location.origin
+            origin: window.location.origin,
+            widget_referrer: window.location.origin
           },
           events: {
             onReady: function (event) {
@@ -714,9 +725,31 @@
       this.startMediaTicker(item);
     }
 
+    resolveMediaUrl(rawUrl) {
+      if (!rawUrl) return '';
+      let url = rawUrl.trim();
+
+      // Se a URL contiver localhost, 127.0.0.1 ou domínio antigo de demonstração,
+      // substitui pelo IP / host da máquina atual para funcionar em qualquer dispositivo na rede Wi-Fi/LAN
+      if (url.startsWith('http://127.0.0.1') || url.startsWith('http://localhost') || url.includes('cms.signage.corp')) {
+        const pathPart = url.replace(/^http:\/\/[^/]+/, '');
+        return window.location.origin + pathPart;
+      }
+
+      if (url.startsWith('/')) {
+        return window.location.origin + url;
+      }
+
+      if (!url.startsWith('http://') && !url.startsWith('https://')) {
+        return window.location.origin + '/media/' + url;
+      }
+
+      return url;
+    }
+
     playVideo(item) {
       const video = this.activeVideo;
-      const mediaUrl = item.downloadUrl.startsWith('http') ? item.downloadUrl : (this.serverBaseUrl + item.downloadUrl);
+      const mediaUrl = this.resolveMediaUrl(item.downloadUrl);
 
       // Ocultar imagens e YouTube
       this.dom.imgA.classList.remove('active');
@@ -726,7 +759,11 @@
         try { this.ytPlayer.pauseVideo(); } catch (e) {}
       }
 
-      video.src = mediaUrl;
+      // Atributos obrigatórios para navegadores Android / iOS
+      video.setAttribute('playsinline', '');
+      video.setAttribute('webkit-playsinline', '');
+      video.setAttribute('x5-playsinline', '');
+      video.setAttribute('muted', '');
       video.muted = !this.isAudioEnabled;
 
       // Desabilitar legendas e faixas de texto
@@ -736,21 +773,32 @@
         }
       }
 
+      video.src = mediaUrl;
       video.load();
 
-      video.play().then(() => {
+      const playPromise = video.play();
+      if (playPromise !== undefined) {
+        playPromise.then(() => {
+          video.classList.add('active');
+        }).catch(err => {
+          console.warn('[WebPlayer] Autoplay com áudio bloqueado no dispositivo. Executando fallback mudo:', err);
+          video.muted = true;
+          video.setAttribute('muted', '');
+          video.play().then(() => {
+            video.classList.add('active');
+          }).catch(e => {
+            console.error('[WebPlayer] Erro fatal no vídeo:', e);
+            setTimeout(() => this.onMediaEnded(), 2000);
+          });
+        });
+      } else {
         video.classList.add('active');
-      }).catch(err => {
-        console.warn('[WebPlayer] Autoplay bloqueado ou erro ao tocar vídeo:', err);
-        // Fallback: se bloquear autoplay com áudio, tenta mudo ou avança
-        video.muted = true;
-        video.play().catch(() => setTimeout(() => this.onMediaEnded(), 2000));
-      });
+      }
     }
 
     playImage(item) {
       const img = this.activeImg;
-      const mediaUrl = item.downloadUrl.startsWith('http') ? item.downloadUrl : (this.serverBaseUrl + item.downloadUrl);
+      const mediaUrl = this.resolveMediaUrl(item.downloadUrl);
 
       // Ocultar vídeos e YouTube
       this.dom.videoA.classList.remove('active');
