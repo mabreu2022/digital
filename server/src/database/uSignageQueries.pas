@@ -166,6 +166,27 @@ begin
     RootObj.Add('player_uuid', QryPlayer.FieldByName('UUID').AsString);
     RootObj.Add('player_name', QryPlayer.FieldByName('NOME').AsString);
     RootObj.Add('volume', QryPlayer.FieldByName('VOLUME_AUDIO').AsInteger);
+
+    // 3. Localizar Agendamentos ESPECÍFICOS para esta Tela (por ID ou por Nome da Tela).
+    // Se a tela tiver agendamento próprio, NÃO puxa agendamento de outras telas nem global!
+    QrySchedules.SQL.Text :=
+      'SELECT A.ID AS SCHED_ID, A.NOME_EVENTO, A.DATA_INICIO, A.DATA_FIM, ' +
+      '       A.HORA_INICIO, A.HORA_FIM, A.DIAS_SEMANA, A.PRIORIDADE, ' +
+      '       P.ID AS PLAYLIST_ID, P.NOME AS PLAYLIST_NOME ' +
+      'FROM AGENDAMENTOS A ' +
+      'INNER JOIN PLAYLISTS P ON P.ID = A.PLAYLIST_ID ' +
+      'LEFT JOIN TELAS T_SCHED ON T_SCHED.ID = A.TELA_ID ' +
+      'WHERE (A.TELA_ID = :TELA_ID OR LOWER(TRIM(T_SCHED.NOME)) = LOWER(TRIM(:PNAME)) OR (A.TELA_ID IS NULL AND NOT EXISTS ( ' +
+      '       SELECT 1 FROM AGENDAMENTOS A2 ' +
+      '       LEFT JOIN TELAS T2 ON T2.ID = A2.TELA_ID ' +
+      '       WHERE (A2.TELA_ID = :TELA_ID OR LOWER(TRIM(T2.NOME)) = LOWER(TRIM(:PNAME))) AND A2.ATIVO = 1 AND A2.DATA_FIM >= CURRENT_DATE))) ' +
+      '  AND A.ATIVO = 1 ' +
+      '  AND P.ATIVA = 1 ' +
+      '  AND A.DATA_FIM >= CURRENT_DATE ' +
+      'ORDER BY A.PRIORIDADE DESC, A.ID ASC';
+    QrySchedules.ParamByName('TELA_ID').AsLargeInt := PlayerID;
+    QrySchedules.ParamByName('PNAME').AsString := QryPlayer.FieldByName('NOME').AsString;
+    QrySchedules.Open;
     QryPlayer.Close;
 
     // 2. Localizar Playlist Padrão de Fallback (usada apenas se não houver agendamento)
@@ -196,24 +217,6 @@ begin
       RootObj.Add('fallback_playlist', FallbackPlObj);
     end;
     QryFallback.Close;
-
-    // 3. Localizar Agendamentos ESPECÍFICOS para esta Tela.
-    // Se a tela tiver agendamento próprio, NÃO puxa agendamento de outras telas nem global!
-    QrySchedules.SQL.Text :=
-      'SELECT A.ID AS SCHED_ID, A.NOME_EVENTO, A.DATA_INICIO, A.DATA_FIM, ' +
-      '       A.HORA_INICIO, A.HORA_FIM, A.DIAS_SEMANA, A.PRIORIDADE, ' +
-      '       P.ID AS PLAYLIST_ID, P.NOME AS PLAYLIST_NOME ' +
-      'FROM AGENDAMENTOS A ' +
-      'INNER JOIN PLAYLISTS P ON P.ID = A.PLAYLIST_ID ' +
-      'WHERE (A.TELA_ID = :TELA_ID OR (A.TELA_ID IS NULL AND NOT EXISTS ( ' +
-      '       SELECT 1 FROM AGENDAMENTOS A2 ' +
-      '       WHERE A2.TELA_ID = :TELA_ID AND A2.ATIVO = 1 AND A2.DATA_FIM >= CURRENT_DATE))) ' +
-      '  AND A.ATIVO = 1 ' +
-      '  AND P.ATIVA = 1 ' +
-      '  AND A.DATA_FIM >= CURRENT_DATE ' +
-      'ORDER BY A.PRIORIDADE DESC, A.ID ASC';
-    QrySchedules.ParamByName('TELA_ID').AsLargeInt := PlayerID;
-    QrySchedules.Open;
 
     while not QrySchedules.EOF do
     begin
