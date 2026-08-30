@@ -65,7 +65,8 @@
         btnCloseSettings: document.getElementById('btnCloseSettings'),
         btnOpenSettings: document.getElementById('btnOpenSettings'),
         btnFullscreen: document.getElementById('btnFullscreen'),
-        btnForceSync: document.getElementById('btnForceSync')
+        btnForceSync: document.getElementById('btnForceSync'),
+        youtubeIframe: document.getElementById('youtubeIframe')
       };
 
       this.activeVideo = this.dom.videoA;
@@ -74,42 +75,8 @@
       this.nextImg = this.dom.imgB;
       this.isAudioEnabled = localStorage.getItem('digitalsign_web_audio') === 'true';
       this.isPaused = false;
-      this.ytPlayer = null;
-      this.isYtReady = false;
-      this.pendingYouTubeId = null;
 
       this.init();
-    }
-
-    getOrCreateUuid() {
-      const urlParams = new URLSearchParams(window.location.search);
-      const queryUuid = urlParams.get('uuid');
-      if (queryUuid && queryUuid.length <= 36) {
-        localStorage.setItem(CONFIG.storageKeyUuid, queryUuid);
-        return queryUuid;
-      }
-
-      let stored = localStorage.getItem(CONFIG.storageKeyUuid);
-      // Se for nulo ou diferente de 36 caracteres, regenera no padrão UUID v4 de 36 caracteres
-      if (!stored || stored.length !== 36) {
-        stored = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
-          const r = Math.random() * 16 | 0;
-          const v = c === 'x' ? r : (r & 0x3 | 0x8);
-          return v.toString(16);
-        });
-        localStorage.setItem(CONFIG.storageKeyUuid, stored);
-      }
-      return stored;
-    }
-
-    getStoredName() {
-      const urlParams = new URLSearchParams(window.location.search);
-      const queryName = urlParams.get('name');
-      if (queryName) {
-        localStorage.setItem(CONFIG.storageKeyName, queryName);
-        return queryName;
-      }
-      return localStorage.getItem(CONFIG.storageKeyName) || ('Web Player ' + window.location.hostname);
     }
 
     init() {
@@ -117,25 +84,35 @@
       this.startClock();
       this.updateIdleMeta();
       this.applyAudioState();
+      this.registerPlayer();
+      this.fetchSync();
 
-      // Registro inicial e sincronização
-      this.registerPlayer().then(() => {
-        this.fetchSync();
-      });
-
-      // Timers em segundo plano
+      // Sincronização periódica de grade e heartbeat
       setInterval(() => this.fetchSync(), CONFIG.syncIntervalMs);
       setInterval(() => this.sendHeartbeat(), CONFIG.heartbeatIntervalMs);
     }
 
     setupEventListeners() {
-      // Eventos de fim de vídeo
+      // Elementos de vídeo
       [this.dom.videoA, this.dom.videoB].forEach(v => {
+        if (!v) return;
         v.addEventListener('ended', () => this.onMediaEnded());
         v.addEventListener('error', (e) => {
           console.warn('[WebPlayer] Erro no elemento de vídeo:', e);
           setTimeout(() => this.onMediaEnded(), 1000);
         });
+      });
+
+      // Mensagens postMessage do YouTube IFrame
+      window.addEventListener('message', (event) => {
+        try {
+          const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+          if (data && data.event === 'onStateChange') {
+            if (data.info === 0) { // ENDED
+              this.onMediaEnded();
+            }
+          }
+        } catch (e) {}
       });
 
       // Clique em qualquer lugar da tela ativa o áudio e força play no Android
@@ -156,8 +133,8 @@
         if (this.activeVideo && this.activeVideo.paused && this.activeItem && this.activeItem.type === 'VIDEO') {
           this.activeVideo.play().catch(() => {});
         }
-        if (this.ytPlayer && typeof this.ytPlayer.playVideo === 'function') {
-          try { this.ytPlayer.playVideo(); } catch (e) {}
+        if (this.dom.youtubeIframe && this.dom.youtubeIframe.contentWindow) {
+          try { this.dom.youtubeIframe.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*'); } catch (e) {}
         }
       }, { passive: true });
       window.addEventListener('dblclick', () => this.toggleFullscreen());
@@ -233,8 +210,8 @@
         // Pausar mídia ativa
         if (this.dom.videoA) this.dom.videoA.pause();
         if (this.dom.videoB) this.dom.videoB.pause();
-        if (this.ytPlayer && typeof this.ytPlayer.pauseVideo === 'function') {
-          try { this.ytPlayer.pauseVideo(); } catch (e) {}
+        if (this.dom.youtubeIframe && this.dom.youtubeIframe.contentWindow) {
+          try { this.dom.youtubeIframe.contentWindow.postMessage('{"event":"command","func":"pauseVideo","args":""}', '*'); } catch (e) {}
         }
         if (this.dom.playPauseIcon) this.dom.playPauseIcon.textContent = '▶️';
         if (this.dom.playPauseText) this.dom.playPauseText.textContent = 'Continuar';
@@ -242,8 +219,9 @@
         // Continuar reprodução
         if (this.activeItem && this.activeItem.type === 'VIDEO') {
           if (this.activeVideo) this.activeVideo.play().catch(() => {});
-        } else if (this.ytPlayer && typeof this.ytPlayer.playVideo === 'function') {
-          try { this.ytPlayer.playVideo(); } catch (e) {}
+        }
+        if (this.dom.youtubeIframe && this.dom.youtubeIframe.contentWindow) {
+          try { this.dom.youtubeIframe.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*'); } catch (e) {}
         }
         if (this.dom.playPauseIcon) this.dom.playPauseIcon.textContent = '⏸️';
         if (this.dom.playPauseText) this.dom.playPauseText.textContent = 'Pausar';
@@ -299,116 +277,15 @@
       if (this.dom.videoB) this.dom.videoB.muted = !this.isAudioEnabled;
 
       // Aplica no player do YouTube
-      if (this.ytPlayer) {
+      if (this.dom.youtubeIframe && this.dom.youtubeIframe.contentWindow) {
         try {
           if (this.isAudioEnabled) {
-            if (typeof this.ytPlayer.unMute === 'function') this.ytPlayer.unMute();
-            if (typeof this.ytPlayer.setVolume === 'function') this.ytPlayer.setVolume(100);
-            if (typeof this.ytPlayer.playVideo === 'function') this.ytPlayer.playVideo();
+            this.dom.youtubeIframe.contentWindow.postMessage('{"event":"command","func":"unMute","args":""}', '*');
+            this.dom.youtubeIframe.contentWindow.postMessage('{"event":"command","func":"setVolume","args":[100]}', '*');
           } else {
-            if (typeof this.ytPlayer.mute === 'function') this.ytPlayer.mute();
+            this.dom.youtubeIframe.contentWindow.postMessage('{"event":"command","func":"mute","args":""}', '*');
           }
         } catch (e) {}
-      }
-    }
-
-    setupYtPlayer(videoId) {
-      const self = this;
-      if (!window.YT || !window.YT.Player) {
-        this.pendingYouTubeId = videoId;
-        return;
-      }
-
-      if (this.ytPlayer && typeof this.ytPlayer.loadVideoById === 'function') {
-        try {
-          this.ytPlayer.loadVideoById({
-            videoId: videoId,
-            startSeconds: 0
-          });
-          this.ytPlayer.playVideo();
-          if (this.isAudioEnabled) {
-            this.ytPlayer.unMute();
-            this.ytPlayer.setVolume(100);
-          } else {
-            this.ytPlayer.mute();
-          }
-        } catch (e) {
-          console.warn('[WebPlayer] Erro ao trocar vídeo do YouTube:', e);
-        }
-        return;
-      }
-
-      try {
-        this.ytPlayer = new YT.Player('youtubePlayer', {
-          height: '100%',
-          width: '100%',
-          videoId: videoId,
-          playerVars: {
-            autoplay: 1,
-            controls: 0,
-            disablekb: 1,
-            enablejsapi: 1,
-            fs: 0,
-            iv_load_policy: 3,
-            cc_load_policy: 0, // Desabilita exibição de legendas
-            playsinline: 1, // CRUCIAL para celulares Android, tablets e Smart TVs
-            loop: 1,
-            playlist: videoId,
-            modestbranding: 1,
-            rel: 0,
-            mute: 1, // Inicia em mudo para garantir autoplay 100% sem bloqueio do navegador
-            origin: window.location.origin,
-            widget_referrer: window.location.origin
-          },
-          events: {
-            onReady: function (event) {
-              event.target.playVideo();
-              try {
-                if (typeof event.target.unloadModule === 'function') {
-                  event.target.unloadModule('captions');
-                  event.target.unloadModule('cc');
-                }
-                if (typeof event.target.setOption === 'function') {
-                  event.target.setOption('captions', 'track', {});
-                  event.target.setOption('cc', 'track', {});
-                }
-              } catch (e) {}
-
-              if (self.isAudioEnabled) {
-                event.target.unMute();
-                event.target.setVolume(100);
-              } else {
-                event.target.mute();
-              }
-            },
-            onStateChange: function (event) {
-              if (event.data === YT.PlayerState.PLAYING) {
-                // Força desativação de legendas ao iniciar reprodução
-                try {
-                  if (typeof event.target.unloadModule === 'function') {
-                    event.target.unloadModule('captions');
-                    event.target.unloadModule('cc');
-                  }
-                  if (typeof event.target.setOption === 'function') {
-                    event.target.setOption('captions', 'track', {});
-                    event.target.setOption('cc', 'track', {});
-                  }
-                } catch (e) {}
-              } else if (event.data === YT.PlayerState.PAUSED) {
-                // Se pausar por restrição do navegador, força play imediato
-                try { event.target.playVideo(); } catch (e) {}
-              } else if (event.data === YT.PlayerState.ENDED) {
-                self.onMediaEnded();
-              }
-            },
-            onError: function (event) {
-              console.warn('[WebPlayer] YouTube Player error code:', event.data);
-              setTimeout(function () { self.onMediaEnded(); }, 1500);
-            }
-          }
-        });
-      } catch (err) {
-        console.error('[WebPlayer] Falha ao instanciar YT.Player:', err);
       }
     }
 
@@ -429,71 +306,54 @@
         return;
       }
 
-      this.dom.youtubeContainer.classList.add('active');
-      this.setupYtPlayer(videoId);
-    }
+      const embedUrl = `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&mute=${this.isAudioEnabled ? '0' : '1'}&playsinline=1&controls=0&loop=1&playlist=${videoId}&enablejsapi=1&rel=0&iv_load_policy=3&cc_load_policy=0&modestbranding=1&origin=${encodeURIComponent(window.location.origin)}`;
 
-    updateIdleMeta() {
-      if (this.dom.idleName) this.dom.idleName.textContent = `🖥️ ${this.name}`;
-      if (this.dom.idleRes) this.dom.idleRes.textContent = `📐 ${window.screen.width}x${window.screen.height}`;
-      if (this.dom.inputName) this.dom.inputName.value = this.name;
-      if (this.dom.inputUuid) this.dom.inputUuid.value = this.uuid;
-    }
-
-    startClock() {
-      const updateClock = () => {
-        const now = new Date();
-        const hrs = String(now.getHours()).padStart(2, '0');
-        const mins = String(now.getMinutes()).padStart(2, '0');
-        const secs = String(now.getSeconds()).padStart(2, '0');
-        if (this.dom.osdClock) {
-          this.dom.osdClock.textContent = `${hrs}:${mins}:${secs}`;
-        }
-      };
-      updateClock();
-      setInterval(updateClock, 1000);
-    }
-
-    showHudTemporarily() {
-      this.dom.app.classList.add('show-cursor');
-      this.dom.osd.classList.add('visible');
-      this.dom.floatingControls.classList.add('visible');
-
-      clearTimeout(this.mouseIdleTimer);
-      this.mouseIdleTimer = setTimeout(() => {
-        this.dom.app.classList.remove('show-cursor');
-        this.dom.osd.classList.remove('visible');
-        this.dom.floatingControls.classList.remove('visible');
-      }, CONFIG.osdHideTimeoutMs);
-    }
-
-    // Auto-registro da tela no Servidor CMS
-    async registerPlayer() {
-      try {
-        const payload = {
-          uuid: this.uuid,
-          name: this.name,
-          local_ip: window.location.hostname || '127.0.0.1',
-          mac_address: '00:00:00:00:00:00',
-          os: 'WebBrowser (' + this.detectBrowser() + ')',
-          version: '1.0.0 (Web)'
-        };
-
-        const res = await fetch(`${this.serverBaseUrl}/api/v1/players/register`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-
-        if (res.ok) {
-          this.isOnline = true;
-          this.updateConnectionDot('online');
-        }
-      } catch (err) {
-        console.warn('[WebPlayer] Falha ao registrar tela:', err);
-        this.isOnline = false;
-        this.updateConnectionDot('offline');
+      if (this.dom.youtubeIframe) {
+        this.dom.youtubeIframe.src = embedUrl;
       }
+      this.dom.youtubeContainer.classList.add('active');
+
+      if (this.isAudioEnabled) {
+        setTimeout(() => {
+          try {
+            if (this.dom.youtubeIframe && this.dom.youtubeIframe.contentWindow) {
+              this.dom.youtubeIframe.contentWindow.postMessage('{"event":"command","func":"unMute","args":""}', '*');
+              this.dom.youtubeIframe.contentWindow.postMessage('{"event":"command","func":"setVolume","args":[100]}', '*');
+            }
+          } catch (e) {}
+        }, 800);
+      }
+    }
+
+    getOrCreateUuid() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const queryUuid = urlParams.get('uuid');
+      if (queryUuid && queryUuid.length <= 36) {
+        localStorage.setItem(CONFIG.storageKeyUuid, queryUuid);
+        return queryUuid;
+      }
+
+      let stored = localStorage.getItem(CONFIG.storageKeyUuid);
+      // Se for nulo ou diferente de 36 caracteres, regenera no padrão UUID v4 de 36 caracteres
+      if (!stored || stored.length !== 36) {
+        stored = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+          const r = Math.random() * 16 | 0;
+          const v = c === 'x' ? r : (r & 0x3 | 0x8);
+          return v.toString(16);
+        });
+        localStorage.setItem(CONFIG.storageKeyUuid, stored);
+      }
+      return stored;
+    }
+
+    getStoredName() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const queryName = urlParams.get('name');
+      if (queryName) {
+        localStorage.setItem(CONFIG.storageKeyName, queryName);
+        return queryName;
+      }
+      return localStorage.getItem(CONFIG.storageKeyName) || ('Web Player ' + window.location.hostname);
     }
 
     detectBrowser() {
@@ -863,8 +723,8 @@
       if (this.dom.youtubeContainer) {
         this.dom.youtubeContainer.classList.remove('active');
       }
-      if (this.ytPlayer && typeof this.ytPlayer.pauseVideo === 'function') {
-        try { this.ytPlayer.pauseVideo(); } catch (e) {}
+      if (this.dom.youtubeIframe) {
+        this.dom.youtubeIframe.src = 'about:blank';
       }
 
       // Log Proof-of-Play
@@ -911,8 +771,8 @@
       if (this.dom.youtubeContainer) {
         this.dom.youtubeContainer.classList.remove('active');
       }
-      if (this.ytPlayer && typeof this.ytPlayer.pauseVideo === 'function') {
-        try { this.ytPlayer.pauseVideo(); } catch (e) {}
+      if (this.dom.youtubeIframe) {
+        this.dom.youtubeIframe.src = 'about:blank';
       }
       this.dom.videoA.pause();
       this.dom.videoB.pause();
