@@ -59,6 +59,7 @@ html, body {
 
 video.media-layer {
   background-color: #000000;
+  pointer-events: none;
 }
 
 #youtubeContainer {
@@ -72,7 +73,7 @@ video.media-layer {
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  pointer-events: auto;
+  pointer-events: none !important; /* Impede exibição de overlay do YouTube no meio da tela */
 }
 
 #youtubeContainer iframe,
@@ -80,6 +81,7 @@ video.media-layer {
   width: 100% !important;
   height: 100% !important;
   border: none;
+  pointer-events: none !important;
 }
 
 /* Idle / Offline Screen */

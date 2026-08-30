@@ -45,6 +45,10 @@
         btnToggleAudio: document.getElementById('btnToggleAudio'),
         audioIcon: document.getElementById('audioIcon'),
         audioText: document.getElementById('audioText'),
+        btnPlayPause: document.getElementById('btnPlayPause'),
+        playPauseIcon: document.getElementById('playPauseIcon'),
+        playPauseText: document.getElementById('playPauseText'),
+        btnNextMedia: document.getElementById('btnNextMedia'),
         idleScreen: document.getElementById('idleScreen'),
         idleStatus: document.getElementById('idleStatus'),
         idleName: document.getElementById('idlePlayerName'),
@@ -69,6 +73,7 @@
       this.activeImg = this.dom.imgA;
       this.nextImg = this.dom.imgB;
       this.isAudioEnabled = localStorage.getItem('digitalsign_web_audio') === 'true';
+      this.isPaused = false;
       this.ytPlayer = null;
       this.isYtReady = false;
       this.pendingYouTubeId = null;
@@ -148,9 +153,14 @@
       });
       window.addEventListener('dblclick', () => this.toggleFullscreen());
 
-      // Teclas de atalho (F = Tela Cheia, A = Áudio, S/M = Configurações, R = Sincronizar)
+      // Teclas de atalho (Espaço = Play/Pause, N = Próximo, F = Tela Cheia, A = Áudio, S/M = Configurações, R = Sincronizar)
       window.addEventListener('keydown', (e) => {
-        if (e.key === 'f' || e.key === 'F') {
+        if (e.code === 'Space' || e.key === ' ') {
+          e.preventDefault();
+          this.togglePlayPause();
+        } else if (e.key === 'n' || e.key === 'N') {
+          this.nextMedia();
+        } else if (e.key === 'f' || e.key === 'F') {
           this.toggleFullscreen();
         } else if (e.key === 'a' || e.key === 'A') {
           this.toggleAudio();
@@ -164,6 +174,18 @@
       });
 
       // Botões da interface
+      if (this.dom.btnPlayPause) {
+        this.dom.btnPlayPause.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.togglePlayPause();
+        });
+      }
+      if (this.dom.btnNextMedia) {
+        this.dom.btnNextMedia.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.nextMedia();
+        });
+      }
       if (this.dom.audioHintBadge) {
         this.dom.audioHintBadge.addEventListener('click', () => this.enableAudio());
       }
@@ -194,6 +216,36 @@
       if (this.dom.btnForceSync) {
         this.dom.btnForceSync.addEventListener('click', () => this.fetchSync(true));
       }
+    }
+
+    togglePlayPause() {
+      this.isPaused = !this.isPaused;
+      if (this.isPaused) {
+        // Pausar mídia ativa
+        if (this.dom.videoA) this.dom.videoA.pause();
+        if (this.dom.videoB) this.dom.videoB.pause();
+        if (this.ytPlayer && typeof this.ytPlayer.pauseVideo === 'function') {
+          try { this.ytPlayer.pauseVideo(); } catch (e) {}
+        }
+        if (this.dom.playPauseIcon) this.dom.playPauseIcon.textContent = '▶️';
+        if (this.dom.playPauseText) this.dom.playPauseText.textContent = 'Continuar';
+      } else {
+        // Continuar reprodução
+        if (this.activeItem && this.activeItem.type === 'VIDEO') {
+          if (this.activeVideo) this.activeVideo.play().catch(() => {});
+        } else if (this.ytPlayer && typeof this.ytPlayer.playVideo === 'function') {
+          try { this.ytPlayer.playVideo(); } catch (e) {}
+        }
+        if (this.dom.playPauseIcon) this.dom.playPauseIcon.textContent = '⏸️';
+        if (this.dom.playPauseText) this.dom.playPauseText.textContent = 'Pausar';
+      }
+    }
+
+    nextMedia() {
+      this.isPaused = false;
+      if (this.dom.playPauseIcon) this.dom.playPauseIcon.textContent = '⏸️';
+      if (this.dom.playPauseText) this.dom.playPauseText.textContent = 'Pausar';
+      this.onMediaEnded();
     }
 
     enableAudio() {
@@ -637,6 +689,9 @@
       this.activeItem = item;
       this.itemStartTime = new Date();
       this.remainingSeconds = item.durationSec;
+      this.isPaused = false;
+      if (this.dom.playPauseIcon) this.dom.playPauseIcon.textContent = '⏸️';
+      if (this.dom.playPauseText) this.dom.playPauseText.textContent = 'Pausar';
       this.dom.idleScreen.classList.add('hidden');
 
       if (this.dom.osdLabel) {
@@ -730,6 +785,7 @@
         const watchdogLimit = Math.max(item.durationSec > 0 ? (item.durationSec + 15) : 7200, 7200);
         let elapsed = 0;
         this.timerTicker = setInterval(() => {
+          if (this.isPaused) return;
           elapsed++;
           if (elapsed >= watchdogLimit) {
             console.warn('[WebPlayer] Watchdog de segurança atingido para vídeo:', item.filename);
@@ -742,6 +798,7 @@
         const duration = item.durationSec > 0 ? item.durationSec : 10;
         this.remainingSeconds = duration;
         this.timerTicker = setInterval(() => {
+          if (this.isPaused) return;
           this.remainingSeconds--;
           if (this.remainingSeconds <= 0) {
             clearInterval(this.timerTicker);
