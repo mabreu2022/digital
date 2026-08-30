@@ -453,3 +453,42 @@ video.media-layer {
 .btn-secondary:hover {
   background: rgba(255, 255, 255, 0.15);
 }
+
+/* Responsividade Mobile e Telas em Retrato (Portrait) */
+@media (max-width: 768px), (orientation: portrait) {
+  .floating-controls {
+    bottom: 12px;
+    padding: 6px 10px;
+    gap: 4px;
+    border-radius: 30px;
+    max-width: 96vw;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .floating-controls::-webkit-scrollbar {
+    display: none;
+  }
+  .control-btn {
+    padding: 6px 10px;
+    font-size: 11px;
+    white-space: nowrap;
+    border-radius: 16px;
+  }
+  .control-btn span {
+    font-size: 14px;
+  }
+  .modal-card {
+    padding: 20px 16px;
+    width: 95%;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  .form-group {
+    margin-bottom: 14px;
+  }
+  .form-input {
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+}

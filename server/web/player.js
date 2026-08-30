@@ -688,6 +688,7 @@
 
     playVideo(item) {
       const video = this.activeVideo;
+      const otherVideo = this.nextVideo;
       const mediaUrl = this.resolveMediaUrl(item.downloadUrl);
 
       // Ocultar imagens e YouTube
@@ -702,8 +703,13 @@
       video.setAttribute('playsinline', '');
       video.setAttribute('webkit-playsinline', '');
       video.setAttribute('x5-playsinline', '');
-      video.setAttribute('muted', '');
+      video.setAttribute('autoplay', '');
       video.muted = !this.isAudioEnabled;
+      if (!this.isAudioEnabled) {
+        video.setAttribute('muted', '');
+      } else {
+        video.removeAttribute('muted');
+      }
 
       // Desabilitar legendas e faixas de texto
       if (video.textTracks) {
@@ -712,26 +718,25 @@
         }
       }
 
-      video.src = mediaUrl;
-      video.load();
+      video.classList.add('active');
+      if (otherVideo) otherVideo.classList.remove('active');
+
+      if (video.src !== mediaUrl) {
+        video.src = mediaUrl;
+        video.load();
+      }
 
       const playPromise = video.play();
       if (playPromise !== undefined) {
-        playPromise.then(() => {
-          video.classList.add('active');
-        }).catch(err => {
-          console.warn('[WebPlayer] Autoplay com áudio bloqueado no dispositivo. Executando fallback mudo:', err);
+        playPromise.catch(err => {
+          console.warn('[WebPlayer] Autoplay com áudio bloqueado. Executando fallback mudo:', err);
           video.muted = true;
           video.setAttribute('muted', '');
-          video.play().then(() => {
-            video.classList.add('active');
-          }).catch(e => {
+          video.play().catch(e => {
             console.error('[WebPlayer] Erro fatal no vídeo:', e);
             setTimeout(() => this.onMediaEnded(), 2000);
           });
         });
-      } else {
-        video.classList.add('active');
       }
     }
 
